@@ -1,6 +1,7 @@
 # kongmy-stack — Build Plan
 
 > Decided 2026-07-13. Full rationale: vault note `Resources/Dev & Infra/API Stack & Template Architecture — kongmy-stack.md`. Working summary in `CLAUDE.md`. This file: what to build, in what order, and why each piece earns its place.
+> **Parallel kickoff: see `EXECUTION.md`** — frozen layout, wave/dependency graph, and per-thread briefs (T1–T8) with disjoint file ownership.
 
 ## Strategy
 

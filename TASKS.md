@@ -1,6 +1,7 @@
 # kongmy-stack — Task List
 
-> Working checklist for build threads. Context: `CLAUDE.md` (rules) + `PLAN.md` (plan + reasoning). Check items off here; record decisions as ADRs in `skeleton/docs/adr/`.
+> Working checklist for build threads. Context: `CLAUDE.md` (rules) + `PLAN.md` (plan + reasoning) + **`EXECUTION.md` (parallel thread briefs T1–T8 with file ownership — start there)**. Check items off here; record decisions as ADRs in `docs/adr/`.
+> Thread mapping: Phase 1a → T1 · repo scaffolding/CI/deploy/CLAUDE-template/add.ts → T2 · contract+helpers+CI-checks → T3 · core/db/authz-tables/audit-table/sequences → T4 · api app/authz-enforcement/audit-write/otel/client-gen → T5 · web app/seams/i18n → T6 · modules/money → T7 · acceptance → T8.
 
 ## Phase 1a — Spikes (do first)
 
