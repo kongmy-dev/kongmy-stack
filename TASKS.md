@@ -26,7 +26,9 @@
 - [ ] Seam interfaces + fakes (ADR-0006): storage, notifier, realtime SSE helper, cache-control route helper, tenant lifecycle script — interfaces + in-memory fakes only, no real impls
 - [ ] Deploy recipes + CI (ADR-0005): systemd unit + Dockerfile + Workers config in skeleton; GH Actions workflow running `bun run ci`
 - [ ] Scaffolded-project CLAUDE.md template (ADR-0005): stack rules pre-filled, project-specifics blank
-- [ ] AuthZ placeholder only (`requireRole('admin')` marked `// AUTHZ-PENDING`) — model is an open design session, do not improvise
+- [ ] AuthZ (ADR-0008): `roles`/`memberships` tables + seeded defaults · permission derivation in `resource()`/`action()` · `ctx.authz` (session-load permission set, `can()`/`assert()`) · enforcement at command door + route early-reject · owner predicate · MCP `tools/list` filtering
+- [ ] Scalars (ADR-0009): `packages/contract/scalars.ts` day-1 set + `DocumentNumber` sequence table/helper (gapless option) + document-lifecycle state helper (draft→posted→cancelled, posted immutable)
+- [ ] Audit + OTel + metrics (ADR-0010): audit_log table + command-door write + Activity feed query · traceparent middleware + request span + trace ids in logs · RED metrics middleware + meter seam · OTLP env config
 - [ ] Seed remaining `docs/adr/` from the vault-note locks not yet covered (terse, one each)
 
 ## Phase 1c — Skeleton: frontend (`apps/web`)
@@ -55,7 +57,9 @@
 - [ ] `modules/queue` (interface + pg-boss impl + PGlite lane per Spike A + scheduler)
 - [ ] `modules/events` (envelope + HLC + outbox + in-proc bus, from Aurum)
 - [ ] `modules/agentic` (registry.execute(), zod-derived tool schemas, autonomy gate, /mcp)
-- [ ] `modules/connector` (canonical model + real/fake gateways + sync jobs + verify scripts, from settlement-middleware)
+- [ ] `modules/connector` (canonical model + real/fake gateways + sync jobs + verify scripts, from settlement-middleware; includes ERPNext permission importer per ADR-0008 when a project syncs with ERPNext)
+- [ ] `modules/ledger` (ADR-0009 lifecycle + accounting core): account tree (code, ASSET/LIABILITY/EQUITY/REVENUE/EXPENSE, parent), balanced JournalEntry/JournalLine, auto-GL-post pattern from documents, FiscalYear + period close, payment application against invoices, trial balance/P&L/BS queries, optional `dimensions` (cost center/project) on lines. Verify-invariant scripts: Σdebits=Σcredits per entry + per period, aging consistency. References: `~/Projects/references/vibe_accounting_malaysia` (fullest), ERPNext accounts doctypes
+- [ ] `modules/country-my` (ADR-0009): states/postcode, TIN validation (vibe tinUtils), SSM/SST ids, MSIC codes, SST tax types, MyInvois e-invoice (UBL 2.1 v1.1 mapper + PKCS#7 signing + OAuth2 + submit/poll/cancel; sandbox+prod). Sources: vibe einvoice module, `~/Projects/emas-pos/packages/country-my`
 - [ ] Kotlin client pipeline (OpenAPI → KMP)
 - [ ] `registry/` shadcn-format manifests for modules
 - [ ] GitHub repo public + `bun create` flow verified from a clean machine
