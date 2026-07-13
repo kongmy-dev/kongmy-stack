@@ -14,7 +14,7 @@ Because `packages/contract` is the SSOT, these conventions propagate mechanicall
 
 - **Single resource → the object itself.** No `{ success, data }` wrapper — `success` re-states the HTTP status and taxes every consumer.
 - **Lists → `{ data: [], meta: { total, limit, offset } }`** — the one earned envelope (DataTable needs `total`). Offset pagination default; cursor pagination is a documented later-variant for proven large feeds.
-- **Errors → `{ error: { code, message, details } }`**: 422 validation (details = typed field issues), 401/403/404/409 from `AppError` subclasses, 500 sanitized. Codes SCREAMING_SNAKE and **stable** (clients + agents branch on them). Request-id header echoed in error responses.
+- **Errors → `{ error: { code, message, details } }`**: 422 validation (details = typed field issues), 401/403/404/409 from `AppError` subclasses, 500 sanitized. Codes SCREAMING_SNAKE and **stable** (clients + agents branch on them). Request-id header echoed in error responses. *Amended by ADR-0007:* `message` is English debug text only — UIs render display text from `code` + `details` via the message catalog.
 - **Scalars:** ISO-8601 UTC timestamps · money = integer minor units · **ids = type-prefixed ULIDs** (`inv_01J8…`) — sortable, greppable, and the prefix catches wrong-id bugs bare UUIDs never do.
 - **Versioning: none.** `/api` unversioned + additive-only evolution (expand-contract). Generated clients redeploy with the API. `/v2` path is the documented escape hatch for a specific external consumer that cannot move.
 - **Idempotency-Key** header accepted on action posts — convention now; enforcement lands with the money module (double-submit hurts exactly there).

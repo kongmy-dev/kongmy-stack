@@ -6,6 +6,7 @@
 
 - [ ] **Spike A: pg-boss on PGlite** — stand up pg-boss against a PGlite instance; enqueue, work, retry, fail-to-dead-letter. Outcome → ADR: either "PGlite lane uses pg-boss" (delete fallback plan) or "PGlite lane uses minimal SQL impl" (spec it: jobs table + SKIP LOCKED worker + backoff).
 - [ ] **Spike B: `@hono/zod-openapi` × zod v4** — define 3 representative routes (list w/ pagination, create w/ body validation, get w/ params + error cases). Assess: zod v4 compat, route-definition ergonomics, OpenAPI output quality. Fallback candidate: `hono-openapi`. Outcome → ADR naming the adapter.
+- [ ] **Spike C (small): message catalog lib** — Paraglide JS vs i18next (ADR-0007). Criteria: typed keys (compile error on missing), bundle cost, Vite + TanStack integration, plural/ICU. Outcome → note in ADR-0007.
 
 ## Phase 1b — Skeleton: backend
 
@@ -19,7 +20,14 @@
 - [ ] `apps/api`: Hono app factory (pure, injectable deps, testable via `app.request()`), OpenAPI adapter wiring, one worked resource (routes → service → repo) as the copyable pattern
 - [ ] Client generation: OpenAPI → typed TS client, wired into `bun run` script; thin ApiError mapper
 - [ ] `packages/core`: pure-TS domain placeholder + the KMP-variant seam documented
-- [ ] Seed `docs/adr/` with the locked decisions (one ADR each, terse, linking vault note)
+- [ ] Platform baseline (ADR-0005): zod env schema + fail-fast + generated `.env.example` · ctx logger + request-id middleware + standard request log line · `/health` + graceful shutdown per runtime · Sentry-shaped error-reporting seam (off)
+- [ ] DB conventions in example schema (ADR-0005): prefixed-ULID pk helper, createdAt/updatedAt in repo layer, drizzle-kit migrate flow, idempotent `seed:dev`/`seed:demo`
+- [ ] Test harness (ADR-0005): `app.request()` contract-test setup over in-memory adapters + zod-derived test factories; wired into `bun run ci`
+- [ ] Seam interfaces + fakes (ADR-0006): storage, notifier, realtime SSE helper, cache-control route helper, tenant lifecycle script — interfaces + in-memory fakes only, no real impls
+- [ ] Deploy recipes + CI (ADR-0005): systemd unit + Dockerfile + Workers config in skeleton; GH Actions workflow running `bun run ci`
+- [ ] Scaffolded-project CLAUDE.md template (ADR-0005): stack rules pre-filled, project-specifics blank
+- [ ] AuthZ placeholder only (`requireRole('admin')` marked `// AUTHZ-PENDING`) — model is an open design session, do not improvise
+- [ ] Seed remaining `docs/adr/` from the vault-note locks not yet covered (terse, one each)
 
 ## Phase 1c — Skeleton: frontend (`apps/web`)
 
@@ -28,6 +36,7 @@
 - [ ] Seam 1–2: generated client + per-resource `queryOptions` factories pattern
 - [ ] Seam 3: DataTable block wired to contract pagination (TanStack Table; server-side pagination/sort/filter; state in URL search params)
 - [ ] Seam 4: form pattern with `zodResolver(contract.X)` + FormField composition
+- [ ] i18n plumbing (ADR-0007): message catalog per Spike C, locale in ctx (user→tenant→en), `Intl` format helpers, error code→message rendering; ALL worked-example strings through `t()`
 - [ ] Seam 5: route search-param validation from contract query schemas
 - [ ] Seam 6: ApiError → `form.setError` / toast mapping utility
 - [ ] Seam 7: auth — BetterAuth wiring server-side, session hook + `beforeLoad` guards client-side; Keycloak variant documented (not built)
