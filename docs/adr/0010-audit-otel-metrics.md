@@ -28,3 +28,13 @@ Three distinct records, never conflated:
 - Domain counters/gauges via `ctx.meter` (OTel metrics API) — used sparingly, named `domain_thing_total`.
 - Export: OTLP when configured; optional `/metrics` Prometheus endpoint per deploy recipe (systemd lane pairs with a scraper; Workers lane skips it).
 - Queue instrumentation: job duration/failure counters ship inside the queue module, same meter seam.
+
+## Business metrics — NOT OTel (three-tier measurement model)
+
+| Tier | Source | Properties | Consumer |
+|---|---|---|---|
+| Infra metrics (RED) | OTel middleware | lossy, restart-reset, near-real-time | Grafana/ops via OTLP or `/metrics` |
+| Operational counters | `ctx.meter` | lossy OK, trend-only | same |
+| **Business metrics** | **SQL over domain tables + events/audit** | exact, auditable, reproducible | admin app via contract endpoints (Stat/DataTable blocks), reports |
+
+Rule: revenue, AR aging, conversion, utilization — anything a human makes a decision on — is **derived by query from domain data** (vibe pattern: P&L/balance-sheet/aging are queries over GL), never accumulated in OTel counters (lossy + unauditable). Where a business metric isn't naturally in tables, the **events module provides the projection path** (facts → projection table → query). Report endpoints are ordinary contracts, so business metrics are automatically typed, permissioned (ADR-0008), and MCP-exposed — an agent can ask for the numbers through the same door.
