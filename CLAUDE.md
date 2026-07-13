@@ -73,6 +73,13 @@ registry/            # LATER: shadcn-format manifests for file items (earn it af
 - **Bun only** (never npm/npx/yarn). Biome for lint+format.
 - **Public stance** (README): personal stack — no support, no roadmap, no semver; breaking changes without notice. Git tags as snapshots.
 
+## Architecture constraints (ADRs — binding, read before building)
+
+- **`docs/adr/0001`** — constraint mechanism: types + codegen + CI, **never inheritance/base classes** (they'd reintroduce versioned coupling). Contains the allowed-imports table = the dep-cruiser ruleset. Every convention must be executable (compile error / CI failure / generated default).
+- **`docs/adr/0002`** — pattern vocabulary: seams (interface + adapters) and data (unions + exhaustive switch), no class taxonomies. Singleton only as consts at composition roots; events bounded to domain facts, never in-request control flow.
+- **`docs/adr/0003`** — DI = two-level ctx (app deps at `main.ts`, request ctx in one middleware; inject I/O, import purity) · no max-lines rules, one-concern-per-file · DDD strategic-only, one layer vocabulary (`contract/core/db/apps`) · **modular monolith with multiple entrypoints** (api/worker/cron mains over shared packages; split services only on demonstrated need) · packages only at 2+ consumers (skeleton ships exactly 3) · per-product monorepo, never umbrella.
+- **`docs/adr/0004`** — API design: REST for nouns + RPC action posts for verbs (actions map 1:1 to MCP tools) · bare objects for single resources, `{data, meta}` for lists only, `{error:{code,message,details}}` errors · prefixed ULIDs, ISO-8601 UTC, minor-unit money · no versioning (additive-only evolution) · **mandatory `.describe()` + no `z.any()` in contracts, CI-enforced** · tool outputs are summaries, not dumps. Encoded as contract helpers (`resource()`, `action()`, `listResponse()`, `id()`) — authoring with helpers IS compliance.
+
 ## Current status
 
 Pre-phase-1. See `PLAN.md` (full plan + reasoning) and `TASKS.md` (actionable checklist). Start with the two spikes — they de-risk the two locked-but-unverified choices.

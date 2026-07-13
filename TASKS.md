@@ -11,6 +11,9 @@
 
 - [ ] Repo scaffolding: bun workspaces, `biome.json`, `tsconfig.base.json`, `.dependency-cruiser.cjs` (layering rules: routes→services→repos, contract imports zod only), CI (`bun run ci`), BSD-3 LICENSE, public-stance README
 - [ ] `packages/contract`: pagination schema (limit/offset/sort/filter names — final, they propagate everywhere), error codes enum, example resource schemas
+- [ ] Contract helpers (ADR-0004): `resource()`, `action()` (RPC route + MCP tool registration), `listResponse()`, `paginationQuery`, `id('prefix')` branded ULID type
+- [ ] Type-level constraint set (ADR-0001): `defineContract()`, `Service<Ctx, In, Out>`, `defineTool()` (requires actionType); `registerResource(app, contract.x, services.x)` CRUD wiring helper
+- [ ] CI checks (ADR-0004): describe-coverage script + no-`z.any()`/`z.unknown()` in contracts — wired into `bun run ci`
 - [ ] Error model: `AppError` subclasses + envelope + single `errorHandler` + HTTP status map
 - [ ] `packages/db`: drizzle setup, `withScope(org, branch)` tenancy helper, adapter seam (postgres | pglite | in-memory), example schema + repo functions
 - [ ] `apps/api`: Hono app factory (pure, injectable deps, testable via `app.request()`), OpenAPI adapter wiring, one worked resource (routes → service → repo) as the copyable pattern
@@ -38,6 +41,7 @@
 
 ## Phase 2+ (pull-driven — do NOT build ahead of a consumer)
 
+- [ ] `scripts/gen.ts feature <x>` generator (ADR-0001): emits contract stub + service + routes + queries.ts + form + columns + route file from a resource definition — the `rails g scaffold` equivalent; generated code is vendored and editable
 - [ ] `modules/money` (Aurum Money/Weight VOs generalized; decimal.js internal, integer minor units on wire; fast-check tests)
 - [ ] `modules/queue` (interface + pg-boss impl + PGlite lane per Spike A + scheduler)
 - [ ] `modules/events` (envelope + HLC + outbox + in-proc bus, from Aurum)
