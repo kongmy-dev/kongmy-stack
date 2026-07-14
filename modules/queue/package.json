@@ -1,0 +1,30 @@
+{
+  "name": "queue-module",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Queue interface: ONE enqueue/worker interface, three implementations (PG, PGlite, CF Queues)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test --timeout 240000",
+    "verify": "bun run test && bun run test:restart",
+    "typecheck": "tsc --noEmit",
+    "test:restart": "bun tests/restart/run.ts"
+  },
+  "dependencies": {
+    "pg-boss": "^12.26.0",
+    "@electric-sql/pglite": "^0.5.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3"
+  }
+}
