@@ -37,6 +37,7 @@ export default function RootLayout() {
               onChange={(e) => setCurrentLocale(e.target.value)}
               className="rounded border border-gray-300 px-2 py-1 text-sm"
               aria-label="Select language"
+              data-testid="locale-toggle"
             >
               {availableLocales.map((loc) => (
                 <option key={loc} value={loc}>

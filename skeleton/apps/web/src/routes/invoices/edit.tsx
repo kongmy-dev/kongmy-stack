@@ -12,6 +12,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { invoiceUpdateInput, type InvoiceUpdateInput } from "@kongmy-stack/contract";
+import type { z } from "zod";
+
+type InvoiceUpdateFormInput = z.input<typeof invoiceUpdateInput>;
 import { parseApiError } from "../../lib/errorMapper";
 import { invoiceQueries, invoiceMutations } from "../../lib/queryOptions";
 import { useState } from "react";
@@ -45,7 +48,7 @@ export default function EditInvoicePage() {
     handleSubmit,
     formState: { errors, isSubmitting },
     setError,
-  } = useForm<InvoiceUpdateInput>({
+  } = useForm<InvoiceUpdateFormInput, unknown, InvoiceUpdateInput>({
     resolver: zodResolver(invoiceUpdateInput),
     defaultValues: {
       customerName: (invoice as any)?.customerName || "",
@@ -80,7 +83,7 @@ export default function EditInvoicePage() {
       }
       if (formErrors) {
         Object.entries(formErrors).forEach(([field, message]) => {
-          setError(field as keyof InvoiceUpdateInput, {
+          setError(field as keyof InvoiceUpdateFormInput, {
             type: "server",
             message,
           });
@@ -101,9 +104,9 @@ export default function EditInvoicePage() {
         </div>
       )}
 
-      <h1 className="mb-6 text-3xl font-bold">{m.invoices_edit_title()}</h1>
+      <h1 className="mb-6 text-3xl font-bold" data-testid="page-title">{m.invoices_edit_title()}</h1>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" data-testid="invoice-form">
         {/* Customer Info */}
         <fieldset className="space-y-4 rounded border border-gray-200 p-4">
           <legend className="text-lg font-semibold">{m.common_search()}</legend>
@@ -117,6 +120,7 @@ export default function EditInvoicePage() {
               {...register("customerName")}
               className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
               placeholder="Acme Corp"
+              data-testid="customer-name-input"
             />
             {errors.customerName && (
               <p className="mt-1 text-sm text-red-600">
@@ -196,6 +200,7 @@ export default function EditInvoicePage() {
             type="submit"
             disabled={isSubmitting}
             className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:bg-gray-400"
+            data-testid="submit-invoice-btn"
           >
             {isSubmitting ? m.common_loading() : m.common_save()}
           </Button>

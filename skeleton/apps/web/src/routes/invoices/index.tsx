@@ -130,14 +130,17 @@ export default function InvoiceListPage() {
       )}
 
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">{m.invoices_list_title()}</h1>
-        <Button onClick={() => navigate({ to: "/invoices/create" })}>
+        <h1 className="text-3xl font-bold" data-testid="page-title">{m.invoices_list_title()}</h1>
+        <Button
+          onClick={() => navigate({ to: "/invoices/create" })}
+          data-testid="create-invoice-btn"
+        >
           {m.invoices_create_title()}
         </Button>
       </div>
 
       <div className="overflow-x-auto rounded border border-border">
-        <Table>
+        <Table data-testid="invoices-table">
           <TableHeader>
             <TableRow>
               <TableHead>{m.invoices_number()}</TableHead>
@@ -163,7 +166,7 @@ export default function InvoiceListPage() {
               </TableRow>
             ) : (
               invoices.map((invoice) => (
-                <TableRow key={invoice.id}>
+                <TableRow key={invoice.id} data-testid={`invoice-row-${invoice.id}`}>
                   <TableCell className="font-mono">{invoice.number}</TableCell>
                   <TableCell>{invoice.customerName}</TableCell>
                   <TableCell className="text-muted-foreground">
@@ -194,6 +197,7 @@ export default function InvoiceListPage() {
                         onClick={() =>
                           navigate({ to: `/invoices/${invoice.id}/edit` })
                         }
+                        data-testid={`edit-invoice-${invoice.id}`}
                       >
                         {m.common_edit()}
                       </Button>
@@ -202,6 +206,7 @@ export default function InvoiceListPage() {
                         size="sm"
                         disabled={deleteMutation.isPending}
                         onClick={() => handleDelete(invoice.id)}
+                        data-testid={`delete-invoice-${invoice.id}`}
                       >
                         {m.common_delete()}
                       </Button>

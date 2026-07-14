@@ -16,11 +16,13 @@
     "boundary-check": "dependency-cruiser --config .dependency-cruiser.cjs .",
     "test": "bun test",
     "dev": "bun run --cwd apps/api dev",
-    "gen:client": "bun scripts/gen-client.ts"
+    "gen:client": "bun scripts/gen-client.ts",
+    "acceptance": "rm -rf node_modules/.vite apps/web/node_modules/.vite && bun acceptance/fresh-scaffold.ts && bunx playwright test -c acceptance && cd .. && bun scripts/verify-all.ts"
   },
   "devDependencies": {
     "@hono/zod-openapi": "^0.15.0",
     "openapi-typescript": "^6.7.0",
+    "@playwright/test": "^1.48.0",
     "@types/bun": "latest",
     "@types/node": "^20.0.0",
     "@biomejs/biome": "^1.8.0",
