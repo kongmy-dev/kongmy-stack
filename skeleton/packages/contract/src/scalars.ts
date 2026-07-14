@@ -14,14 +14,17 @@ import { z } from "zod";
 
 /**
  * Prefixed ULID branded type
- * Usage: `id('inv')` → `z.string().brand<'inv'>()` with ULID validation
+ * Usage: `id('inv')` → `z.string().brand<'inv_*'>()` with prefixed ULID validation
+ * Format: {prefix}_{ULID} (e.g., inv_01J8AUZC1234567890ABCDEF)
+ *
+ * Per ADR-0004, T4 generateId(): `${prefix}_${ulid()}`
  */
 export function id<T extends string>(prefix: T) {
   return z
     .string()
-    .regex(/^[0-7][0-9A-HJKMNP-TV-Z]{25}$/, "Invalid ULID format")
-    .describe(`Prefixed ULID (${prefix}–*): ${prefix}-based identifier`)
-    .brand<`${T}-${string}`>();
+    .regex(new RegExp(`^${prefix}_[0-7][0-9A-HJKMNP-TV-Z]{25}$`), `Invalid ${prefix} ID format`)
+    .describe(`Prefixed ULID (${prefix}_*): ${prefix}-based identifier`)
+    .brand<`${T}_${string}`>();
 }
 
 // ============================================================================

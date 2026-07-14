@@ -12,8 +12,11 @@
     "@kongmy-stack/contract": "workspace:*",
     "@kongmy-stack/core": "workspace:*",
     "@kongmy-stack/db": "workspace:*",
+    "@hono/zod-openapi": "^0.15.0",
     "hono": "^4.0.0"
   },
-  "devDependencies": {}
-
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "zod": "^4.0.0"
+  }
 }

@@ -15,10 +15,12 @@
     "ci": "bun run type-check && bun run boundary-check && bun run test",
     "boundary-check": "dependency-cruiser --config .dependency-cruiser.cjs .",
     "test": "bun test",
-    "dev": "bun run --cwd apps/api dev"
+    "dev": "bun run --cwd apps/api dev",
+    "gen:client": "bun scripts/gen-client.ts"
   },
   "devDependencies": {
     "@hono/zod-openapi": "^0.15.0",
+    "openapi-typescript": "^6.7.0",
     "@types/bun": "latest",
     "@types/node": "^20.0.0",
     "@biomejs/biome": "^1.8.0",
