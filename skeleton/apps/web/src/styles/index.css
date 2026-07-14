@@ -1,3 +1,6 @@
+@import "tailwindcss";
+@import "./sapphire-theme.css";
+
 /**
  * Global styles for kongmy-stack web app.
  * Minimal utility classes; ready for sapphire-ui component imports later.

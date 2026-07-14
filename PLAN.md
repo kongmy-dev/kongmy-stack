@@ -48,11 +48,11 @@
 
 ## Acceptance criteria for "phase 1 done"
 
-- [ ] A new project scaffolds via `bun create kongmy-dev/kongmy-stack` and reaches a running CRUD feature (API + web) in under an hour without writing any platform code
-- [ ] `bun run ci` green: typecheck + dep-cruiser boundaries + tests
-- [ ] Zero hand-written fetch/client code anywhere; zero routes without contract schemas (dep-cruiser/lint enforced where possible)
-- [ ] emas-pos consuming the skeleton for at least one real screen end-to-end
-- [ ] Both spikes resolved and their outcomes recorded in docs/adr
+- [x] A new project scaffolds via `bun create kongmy-dev/kongmy-stack` and reaches a running CRUD feature (API + web) in under an hour without writing any platform code — *T8 2026-07-14: fresh copy → install → full CI green in seconds; live CRUD driven in the browser (create/list/edit/delete, 422→field, 401, EN↔MS locale switch, tenancy isolation observed)*
+- [x] `bun run ci` green: typecheck (per-project) + dep-cruiser boundaries + tests — *52 tests / 5 files from clean install*
+- [x] Zero hand-written fetch/client code anywhere; zero routes without contract schemas — *client = generated types + thin wrapper (seam 1); routes wired from contract schemas; boundaries CI-enforced*
+- [ ] emas-pos consuming the skeleton for at least one real screen end-to-end — *scaffold signal issued; tracked in emas-pos*
+- [x] Both spikes resolved and their outcomes recorded in docs/adr — *ADR-0011/0012/0013 + docs/spikes/ archive; conformance-hardened*
 
 ## Non-goals
 

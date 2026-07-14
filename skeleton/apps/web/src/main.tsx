@@ -1,7 +1,8 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
+import "./styles/index.css";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import { RouterProvider, createRouter, RootRoute, Route } from "@tanstack/react-router";
+import { RouterProvider, createRouter, RootRoute, Route, Outlet } from "@tanstack/react-router";
 import { LocaleProvider } from "./contexts/localeContext";
 import RootLayout from "./routes/__root";
 
@@ -15,10 +16,16 @@ const rootRoute = new RootRoute({
   component: RootLayout,
 });
 
-// Create invoice routes
+// Create invoice routes: parent is a pure layout (Outlet); list is the index child
 const invoicesRoute = new Route({
   getParentRoute: () => rootRoute,
-  path: "/invoices/",
+  path: "/invoices",
+  component: Outlet,
+});
+
+const invoicesIndexRoute = new Route({
+  getParentRoute: () => invoicesRoute,
+  path: "/",
   component: () => (
     <Suspense fallback={<div>Loading...</div>}>
       <InvoiceListPage />
@@ -48,7 +55,11 @@ const invoicesEditRoute = new Route({
 
 // Create route tree
 const routeTree = rootRoute.addChildren([
-  invoicesRoute.addChildren([invoicesCreateRoute, invoicesEditRoute]),
+  invoicesRoute.addChildren([
+    invoicesIndexRoute,
+    invoicesCreateRoute,
+    invoicesEditRoute,
+  ]),
 ]);
 
 // Create router
