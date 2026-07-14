@@ -64,7 +64,11 @@ export interface PgBossConfig {
  * Usage (PGlite file-backed):
  *   const q = await pgbossQueue({pglite: new PGlite("file://./queue.db")});
  */
-export async function pgbossQueue(config: PgBossConfig): Promise<Queue> {
+export async function pgbossQueue(
+  config: PgBossConfig,
+  /** internal: helpers that construct the PGlite instance own its lifecycle */
+  ownsPglite = false
+): Promise<Queue> {
   // Build pg-boss config based on input
   interface BossConstructorOptions {
     db?: object;
@@ -265,8 +269,17 @@ export async function pgbossQueue(config: PgBossConfig): Promise<Queue> {
       }
       subscriptions.clear();
 
-      // Stop pg-boss (gracefully waits for in-flight jobs, timeout ~30s)
-      await boss.stop();
+      // Fully drain before returning: without wait:true, pg-boss's poll loop
+      // can fire after PGlite teardown — an async error AFTER the test run,
+      // which bun test rightly reports as a dirty exit (observed as code 99).
+      await boss.stop({ graceful: true, timeout: 10_000 });
+
+      // Close a PGlite instance we created ourselves (helpers); never close
+      // a caller-provided one.
+      if (config.pglite && ownsPglite) {
+        const closable = config.pglite as { close?: () => Promise<void> };
+        await closable.close?.();
+      }
     },
   };
 }
@@ -287,7 +300,7 @@ export async function pgbossQueueFile(filePath: string): Promise<Queue> {
   return pgbossQueue({
     pglite,
     newJobCheckInterval: 500,
-  });
+  }, true);
 }
 
 /**
@@ -308,5 +321,5 @@ export async function pgbossQueueMemory(): Promise<Queue> {
   return pgbossQueue({
     pglite,
     newJobCheckInterval: 100,
-  });
+  }, true);
 }
