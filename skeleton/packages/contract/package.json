@@ -1,0 +1,26 @@
+{
+  "name": "@kongmy-stack/contract",
+  "version": "0.0.0",
+  "description": "Zod SSOT: contracts, helpers, pagination, error codes",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "check:describe": "bun run scripts/check-describe.ts",
+    "check:no-any": "bun run scripts/check-no-any.ts"
+  },
+  "dependencies": {
+    "zod": "^3.22.0 || ^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5"
+  }
+}

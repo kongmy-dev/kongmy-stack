@@ -1,0 +1,120 @@
+# CLAUDE.md — Project-specific agent instructions
+
+This file is initialized from the kongmy-stack template. It combines **stack law** (immutable, from the skeleton) with **project specifics** (fill in as you go).
+
+## Stack law (frozen ADRs, DO NOT CHANGE)
+
+These decisions are locked at the skeleton level and enforced by the type system, CI, and import rules. See the root `PLAN.md` and `docs/adr/` for rationale.
+
+### Architecture (ADR-0001, 0003, 0005)
+- **No base classes.** Constraints are enforced via types, generated code (from contracts), and dependency-cruiser CI rules — not inheritance.
+- **DI = ctx parameter.** App-level deps (db, queue, logger) constructed once at `main.ts`; request-level ctx (tenant, user, logger, authz) in one middleware. Services are pure and receive ctx.
+- **One package per shared consumer.** Skeleton ships contract/core/db only. Everything else is a folder until 2+ consumers need it.
+- **Contract → OpenAPI → types → client.** Every route is a zod schema + service. Routes import only contracts + services; services never see Hono.
+
+### API & Contracts (ADR-0004, 0008, 0009)
+- **REST for nouns + POST /action for verbs.** Actions map 1:1 to MCP tools.
+- **One error envelope:** `{ ok, data? } | { ok: false, error: { code, message, details } }` (code is the i18n key).
+- **Mandatory `.describe()`; no `z.any()`.** CI fails otherwise.
+- **Contracts import only zod.** Never the OpenAPI adapter (keeps it swappable).
+- **Scalars:** prefixed ULIDs (e.g., `inv_…`), ISO-8601 UTC times, minor-unit money (integer cents), E.164 phones, normalized emails.
+
+### Allowed imports (enforced by dep-cruiser CI)
+
+| Layer | May import | Never |
+|---|---|---|
+| `packages/contract` | zod only | OpenAPI adapter, anything else |
+| `packages/core` | contract | db, hono, I/O, runtime APIs |
+| `packages/db` | contract, core, drizzle | hono, apps |
+| `apps/api/routes` | contract, services | db repos directly |
+| services | core, db, contract | hono (services are HTTP-agnostic) |
+| `apps/web/features/<x>` | contract, generated client, components/ui | other features' internals, raw fetch |
+
+### Database & Tenancy (ADR-0005, 0009)
+- **Postgres only:** PGlite (dev/test), local Postgres, Neon (prod). Drizzle ORM constant.
+- **DB schema:** prefixed ULID pk, `createdAt`/`updatedAt` on every table, **no soft delete by default**.
+- **Tenancy:** `withScope(org, branch)` enforces row-level scope; sequences table for gapless document numbers.
+- **Migrations:** `bun drizzle:generate`, commit SQL, `bun drizzle:migrate` on deploy.
+
+### Testing (ADR-0005)
+- **Contract tests are the workhorse:** `app.request()` against in-memory adapters. No mocks of your own code.
+- **Core unit tests only:** fast-check for money/domain invariants.
+- **One Playwright smoke:** login → worked-feature CRUD.
+- **Factories from zod schemas:** zero hand-rolled fixtures.
+
+### Platform Day-1 (ADR-0005, 0010)
+- zod-validated env schema, fail-fast on boot, `.env.example` generated.
+- Structured logger, request-id on every line, `/health` endpoint, graceful shutdown.
+- Audit table (append-only, written at command door), OTel-via-env (console default), RED metrics per route.
+
+### Frontend (ADR-0007, seam 1–8)
+- Vite + React + TanStack Router (file-based, typed search params) + TanStack Query.
+- Forms: react-hook-form + `zodResolver(contract.X)`. Error mapping: `VALIDATION_ERROR.details.field → form.setError(field)`.
+- i18n: typed compile-time message catalog; all strings through `t()`; locale in ctx (user→tenant→en).
+- Vendored UI from sapphire-ui registry; reskin via token overrides, never fork upstream.
+
+### Deployment (ADR-0005)
+- Bun+systemd (default), Docker (multi-stage), Cloudflare Workers config supplied.
+- One GH Actions workflow: `bun run ci` on PR; deploy jobs commented until targets exist.
+
+---
+
+## Project specifics (fill in below)
+
+### Domain & Features
+- **Product name:** \_\_\_\_\_
+- **Key entities:** (e.g., Order, Customer, Inventory)
+- **Real-time needs?** (SSE, WebSocket, or none?)
+- **Reporting?** (analytics table, business metrics, or none?)
+
+### Deployment targets
+- **API:** (Bun+systemd, Docker, Workers, other?)
+- **Web:** (Vercel, self-hosted static, other?)
+- **Database:** (Neon PostgreSQL, local Postgres, other?)
+
+### Team & guardrails
+- **Code review:** (PR required before main? automated checks?)
+- **Monitoring:** (Sentry, datadog, internal logging only?)
+- **On-call:** (how is production support handled?)
+
+### Known constraints or trade-offs
+- (Add any project-specific notes that override defaults; rationale in comments.)
+
+---
+
+## Commands
+
+```bash
+# Development
+bun run dev               # Start API + watch
+bun run type-check       # TypeScript only
+bun run lint             # Biome lint
+bun run format           # Biome format
+
+# CI (same as .github/workflows/ci.yml)
+bun run ci               # type-check + boundary-check + tests
+
+# Database
+bun drizzle:generate     # Generate migrations from schema
+bun drizzle:migrate      # Apply migrations
+bun drizzle:seed:dev     # Seed development data
+
+# Build & Deploy
+bun run build            # Build for prod
+docker build -f deploy/Dockerfile -t api:latest .
+# systemd: sudo systemctl restart app
+```
+
+---
+
+## ADR Snapshots
+
+Rationale for each frozen decision is in `docs/adr/`. Key ones:
+
+- **0001** — Why no base classes; the allowed-imports table.
+- **0003** — DI as ctx; modular monolith; packages for sharing only.
+- **0004** — API envelope shape; contract-as-SSOT.
+- **0005** — Day-1 bake-ins: env, logger, tests, DB conventions, deploy recipes.
+- **0008** — AuthZ: contract-derived permissions, one enforcement door.
+- **0009** — Scalars: Money, DocumentNumber, DateOnly, etc.
+- **0010** — Audit ≠ logs ≠ events; OTel API seam; RED metrics.

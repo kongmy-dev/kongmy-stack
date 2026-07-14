@@ -1,0 +1,38 @@
+# systemd unit for Bun + Node apps (ADR-0005 recipe)
+#
+# Install:
+#   sudo cp app.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable app
+#
+# Env vars in EnvironmentFile:
+#   NODE_ENV=production
+#   LOG_LEVEL=info
+#   DATABASE_URL=postgres://...
+
+[Unit]
+Description=kongmy-stack API service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=app
+WorkingDirectory=/opt/app
+EnvironmentFile=/opt/app/.env.production
+ExecStart=/usr/local/bin/bun run apps/api/dist/main.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Graceful shutdown
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Resource limits (tune per deployment)
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

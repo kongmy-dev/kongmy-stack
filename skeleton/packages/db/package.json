@@ -1,0 +1,28 @@
+{
+  "name": "@kongmy-stack/db",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "src",
+    "migrations"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "migrate": "drizzle-kit migrate",
+    "generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.30.10",
+    "@electric-sql/pglite": "^0.2.15",
+    "postgres": "^3.4.4",
+    "ulid": "^2.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "drizzle-kit": "^0.20.14"
+  }
+}

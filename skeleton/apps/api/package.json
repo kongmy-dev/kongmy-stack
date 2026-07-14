@@ -1,0 +1,19 @@
+{
+  "name": "api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/main.ts",
+    "build": "bun build src/main.ts --outfile dist/main.js --target bun",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@kongmy-stack/contract": "workspace:*",
+    "@kongmy-stack/core": "workspace:*",
+    "@kongmy-stack/db": "workspace:*",
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {}
+
+}

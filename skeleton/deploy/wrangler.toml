@@ -1,0 +1,39 @@
+# Cloudflare Workers config (ADR-0005 recipe)
+# Targets Hono as a Worker; routes → services layer stays the same.
+#
+# Deploy: wrangler publish
+# Dev: wrangler dev
+
+name = "kongmy-stack-api"
+type = "service"
+main = "apps/api/src/main.ts"
+compatibility_date = "2024-01-01"
+
+# Environment: dev (local), staging, production
+[env.production]
+# Set database URL and other secrets via wrangler secret:
+# wrangler secret put DATABASE_URL --env production
+
+# Database (example: Neon via HTTP)
+# Note: D1 uses the same adapter seam as Postgres; routes stay unchanged.
+# [env.production.vars]
+# DATABASE_URL = "postgresql://user:pass@host/db"
+
+# Queue (CF Queues for async jobs)
+# [[queues.consumers]]
+# queue = "job-processor"
+# max_batch_size = 10
+# max_batch_timeout = 30
+# max_retries = 3
+
+# Analytics Engine (optional; off by default per ADR-0005 no-list)
+# analytics_engine_datasets = ["events"]
+
+# Build (TypeScript + Bun support)
+[build]
+command = "bun build apps/api/src/main.ts --outfile dist/main.js --target bun"
+cwd = "."
+
+# Observability: define here, wire in app via env
+# - OTEL_EXPORTER_OTLP_ENDPOINT for tracing
+# - LOG_LEVEL for structured logs

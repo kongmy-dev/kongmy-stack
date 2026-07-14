@@ -1,0 +1,29 @@
+{
+  "name": "kongmy-stack-skeleton",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Template system clone-point: apps, packages, scripts, and deployment recipes.",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "ci": "bun run type-check && bun run boundary-check && bun run test",
+    "boundary-check": "dependency-cruiser --config .dependency-cruiser.cjs .",
+    "test": "bun test",
+    "dev": "bun run --cwd apps/api dev"
+  },
+  "devDependencies": {
+    "@hono/zod-openapi": "^0.15.0",
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0",
+    "@biomejs/biome": "^1.8.0",
+    "dependency-cruiser": "^16.3.0",
+    "typescript": "^5.3.0",
+    "zod": "^4.0.0"
+  }
+}
