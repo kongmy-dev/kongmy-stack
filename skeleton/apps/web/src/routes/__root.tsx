@@ -1,16 +1,39 @@
 /**
  * Root layout route.
- * Sets up the main app shell with navigation, locale switcher, etc.
+ * Sets up the main app shell with navigation, locale switcher, logout button, etc.
  */
 
-import { Outlet } from "@tanstack/react-router";
+import { useState } from "react";
+import { Outlet, useRouter } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "../contexts/localeContext";
+import { sessionQueries } from "../lib/queryOptions";
+import { apiClient } from "../lib/api";
+import { Button } from "../components/ui/button";
 
 // Placeholder for Paraglide messages - will be generated at build time
 import * as m from "../paraglide/messages.js";
 
 export default function RootLayout() {
   const { locale, setCurrentLocale, availableLocales } = useLocale();
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Fetch current session
+  const { data: session } = useQuery(sessionQueries.current());
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await apiClient.auth.signOut();
+      // Redirect to login
+      await router.navigate({ to: "/login" });
+    } catch (err) {
+      console.error("Logout failed:", err);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -32,6 +55,11 @@ export default function RootLayout() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
+            {session && (
+              <div className="text-sm text-gray-700">
+                {session.userId}
+              </div>
+            )}
             <select
               value={locale}
               onChange={(e) => setCurrentLocale(e.target.value)}
@@ -45,6 +73,16 @@ export default function RootLayout() {
                 </option>
               ))}
             </select>
+            {session && (
+              <Button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                variant="outline"
+                size="sm"
+              >
+                {isLoggingOut ? "Logging out..." : "Logout"}
+              </Button>
+            )}
           </div>
         </div>
       </header>

@@ -13,11 +13,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { invoiceUpdateInput, type InvoiceUpdateInput } from "@kongmy-stack/contract";
 import type { z } from "zod";
-
-type InvoiceUpdateFormInput = z.input<typeof invoiceUpdateInput>;
 import { parseApiError } from "../../lib/errorMapper";
 import { invoiceQueries, invoiceMutations } from "../../lib/queryOptions";
 import { useState } from "react";
+
+// zodResolver v5 types the form by the schema INPUT (unbranded); onSubmit receives the parsed OUTPUT
+type InvoiceUpdateFormInput = z.input<typeof invoiceUpdateInput>;
 
 // Placeholder messages - will be replaced by Paraglide at build time
 import * as m from "../../paraglide/messages.js";

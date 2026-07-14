@@ -142,6 +142,7 @@ export function makeApiClient(options: ApiClientOptions = {}) {
       method,
       headers,
       body: opts?.body ? JSON.stringify(opts.body) : undefined,
+      credentials: "include",
     });
 
     if (!response.ok) {
@@ -156,6 +157,21 @@ export function makeApiClient(options: ApiClientOptions = {}) {
   }
 
   return {
+    auth: {
+      me: () =>
+        apiFetch<{
+          userId: string;
+          roles: string[];
+          permissions: string[];
+        } | null>("GET", "/auth/me"),
+
+      signIn: (body: { email: string; password: string }) =>
+        apiFetch<{ ok: boolean }>("POST", "/auth/sign-in", { body }),
+
+      signOut: () =>
+        apiFetch<{ ok: boolean }>("POST", "/auth/sign-out"),
+    },
+
     invoices: {
       list: (query: { limit: number; offset: number }) =>
         apiFetch<{

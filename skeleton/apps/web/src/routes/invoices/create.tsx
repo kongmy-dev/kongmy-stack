@@ -13,12 +13,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoiceCreateInput, type InvoiceCreateInput } from "@kongmy-stack/contract";
 import type { z } from "zod";
-
-// zodResolver v5 types the form by the schema INPUT (unbranded); onSubmit receives the parsed OUTPUT
-type InvoiceCreateFormInput = z.input<typeof invoiceCreateInput>;
 import { apiClient } from "../../lib/api";
 import { parseApiError } from "../../lib/errorMapper";
 import { useState } from "react";
+
+// zodResolver v5 types the form by the schema INPUT (unbranded); onSubmit receives the parsed OUTPUT
+type InvoiceCreateFormInput = z.input<typeof invoiceCreateInput>;
 
 // Placeholder messages - will be replaced by Paraglide at build time
 import * as m from "../../paraglide/messages.js";
@@ -52,11 +52,10 @@ export default function CreateInvoicePage() {
   } = useForm<InvoiceCreateFormInput, unknown, InvoiceCreateInput>({
     resolver: zodResolver(invoiceCreateInput),
     defaultValues: {
-      // TODO(customer-picker): real customer selection is a future feature;
-      // until then a contract-valid placeholder id keeps the create flow working.
       customerId: "cust_01HZXA0000000000000000001A",
       customerName: "",
       customerEmail: "",
+      number: "",
       issuedDate: new Date().toISOString().split("T")[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         .toISOString()
@@ -274,15 +273,6 @@ export default function CreateInvoicePage() {
             {m.invoices_line_items()}
           </legend>
 
-          {errors.lineItems && (
-            <div data-testid="lineItems-error" className="text-sm text-red-600">
-              {typeof errors.lineItems === "string"
-                ? errors.lineItems
-                : errors.lineItems.message ||
-                  "Line items must contain at least one item"}
-            </div>
-          )}
-
           {lineItems.map((item, index) => (
             <div key={index} className="space-y-2 rounded bg-gray-50 p-3">
               <div className="grid grid-cols-3 gap-2">
@@ -340,6 +330,11 @@ export default function CreateInvoicePage() {
           >
             {m.invoices_add_line_item()}
           </Button>
+          {errors.lineItems && (
+            <p className="mt-2 text-sm text-red-600" data-testid="lineItems-error">
+              {errors.lineItems.message}
+            </p>
+          )}
         </fieldset>
 
         {/* Notes */}

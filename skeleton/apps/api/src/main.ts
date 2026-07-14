@@ -23,7 +23,10 @@ import {
 } from "@kongmy-stack/core";
 import type { DbInstance } from "@kongmy-stack/db";
 import { routes } from "./routes/index.js";
+import { registerAuth } from "./routes/auth.js";
+import { betterAuthProvider, headerMockProvider } from "./lib/session.js";
 import { loadEnv } from "./env.js";
+import { invoiceResource, invoiceLifecycle, sendInvoiceAction } from "@kongmy-stack/contract";
 
 export const env = loadEnv();
 
@@ -44,6 +47,7 @@ export interface AppContext {
   // Request-level data (from middleware)
   requestId: string;
   traceId: string;
+  session: any; // Session from provider (or null if not authenticated)
   tenant: {
     orgId: string;
     branchId: string;
@@ -132,8 +136,12 @@ function errorHandler(err: Error, ctx: Context<AppBindings>) {
 // ============================================================================
 
 /**
- * Per-request context construction middleware.
- * Adds tenant, user, authz, logger, tracing to ctx.
+ * Per-request context construction middleware factory.
+ * Adds tenant, user, authz, logger, tracing, session to ctx.
+ *
+ * Supports two session providers:
+ * - headerMockProvider: For contract tests (x-user-id, x-org-id, x-roles headers)
+ * - betterAuthProvider: For real auth (cookies, DB lookup)
  *
  * In a real app:
  * - tenant loaded from session/JWT claim
@@ -141,60 +149,69 @@ function errorHandler(err: Error, ctx: Context<AppBindings>) {
  * - roles/permissions fetched from db (or cached)
  * - logger is a structured instance (pino/winston/etc)
  * - tracing: W3C traceparent parsed/generated, span created
- *
- * For contract tests: minimal mock setup suffices.
  */
-async function contextMiddleware(
-  ctx: Context<AppBindings>,
-  next: () => Promise<void>
-) {
-  // Mock context setup for testing; real impl would load from session, JWT, etc.
-  // No session at all (mock signal: x-anonymous) → 401 through the one errorHandler.
-  if (ctx.req.header("x-anonymous") === "true") {
-    throw new UnauthorizedError("No active session");
-  }
-  const requestId = ctx.req.header("x-request-id") || `req_${Date.now()}`;
-  const traceId = ctx.req.header("traceparent")?.split("-")[1] || `trace_${Date.now()}`;
+function createContextMiddleware(sessionProvider: any) {
+  return async function contextMiddleware(
+    ctx: Context<AppBindings>,
+    next: () => Promise<void>
+  ) {
+    const requestId = ctx.req.header("x-request-id") || `req_${Date.now()}`;
+    const traceId = ctx.req.header("traceparent")?.split("-")[1] || `trace_${Date.now()}`;
 
-  const mockTenant = {
-    orgId: ctx.req.header("x-org-id") || "org_test",
-    branchId: ctx.req.header("x-branch-id") || "branch_main",
+    // Try to get session from provider
+    const session = await sessionProvider.getSession(ctx);
+
+    // If no session and x-anonymous is "true", allow (for /health, /openapi.json)
+    // If no session and x-anonymous is NOT set, routes requiring auth will enforce
+    if (!session && ctx.req.header("x-anonymous") === "true") {
+      // Anonymous allowed for public endpoints
+    }
+
+    const mockTenant = {
+      orgId: ctx.req.header("x-org-id") || (session?.organizationId) || "org_test",
+      branchId: ctx.req.header("x-branch-id") || "branch_main",
+    };
+
+    const mockUser = {
+      id: session?.userId || ctx.req.header("x-user-id") || "user_test",
+      roles: session?.roles || (ctx.req.header("x-roles") || "user").split(",").filter(Boolean),
+    };
+
+    // Build authz from session permissions
+    const sessionPermissions = session?.permissions || new Set<string>();
+    const mockAuthz = {
+      can: (perm: string) => sessionPermissions.has(perm),
+      assert: (perm: string) => {
+        // If no session, throw UnauthorizedError (auth required)
+        if (!session) {
+          throw new UnauthorizedError("No active session");
+        }
+        // If authenticated but permission missing, throw ForbiddenError
+        if (!mockAuthz.can(perm)) {
+          throw new ForbiddenError(`Permission denied: ${perm}`);
+        }
+      },
+    };
+
+    const mockLogger = {
+      info: (msg: string, data?: Record<string, unknown>) => {
+        console.log(JSON.stringify({ level: "info", message: msg, requestId, traceId, ...data }));
+      },
+      error: (msg: string, data?: Record<string, unknown>) => {
+        console.error(JSON.stringify({ level: "error", message: msg, requestId, traceId, ...data }));
+      },
+    };
+
+    ctx.set("requestId", requestId);
+    ctx.set("traceId", traceId);
+    ctx.set("session", session);
+    ctx.set("tenant", mockTenant);
+    ctx.set("user", mockUser);
+    ctx.set("authz", mockAuthz);
+    ctx.set("logger", mockLogger);
+
+    await next();
   };
-
-  const mockUser = {
-    id: ctx.req.header("x-user-id") || "user_test",
-    roles: (ctx.req.header("x-roles") || "user").split(",").filter(Boolean),
-  };
-
-  const mockAuthz = {
-    can: (_perm: string) => {
-      // Mock: only admin role can do things. In real impl: check permission set from roles.
-      return mockUser.roles.includes("admin");
-    },
-    assert: (perm: string) => {
-      if (!mockAuthz.can(perm)) {
-        throw new ForbiddenError(`Permission denied: ${perm}`);
-      }
-    },
-  };
-
-  const mockLogger = {
-    info: (msg: string, data?: Record<string, unknown>) => {
-      console.log(JSON.stringify({ level: "info", message: msg, requestId, traceId, ...data }));
-    },
-    error: (msg: string, data?: Record<string, unknown>) => {
-      console.error(JSON.stringify({ level: "error", message: msg, requestId, traceId, ...data }));
-    },
-  };
-
-  ctx.set("requestId", requestId);
-  ctx.set("traceId", traceId);
-  ctx.set("tenant", mockTenant);
-  ctx.set("user", mockUser);
-  ctx.set("authz", mockAuthz);
-  ctx.set("logger", mockLogger);
-
-  await next();
 }
 
 // ============================================================================
@@ -206,7 +223,11 @@ async function contextMiddleware(
  * No top-level I/O; no server listening here.
  * Routes, middleware, error handler wired; ready for testing or binding to runtime.
  */
-export function createApp(deps: { db: DbInstance; env: typeof env }) {
+export function createApp(deps: {
+  db: DbInstance;
+  env: typeof env;
+  sessionProvider?: any;
+}) {
   const app = new OpenAPIHono<AppBindings>({
     defaultHook: (result) => {
       // Convert OpenAPI validation errors to ValidationError so errorHandler maps to 422
@@ -226,7 +247,13 @@ export function createApp(deps: { db: DbInstance; env: typeof env }) {
   app.use(logger());
   app.use(cors());
 
+  // Determine session provider based on environment
+  const sessionProvider = deps.sessionProvider || (
+    deps.env.NODE_ENV === "test" ? headerMockProvider() : betterAuthProvider(deps.db)
+  );
+
   // Context middleware: inject app deps + request-level data
+  const contextMiddleware = createContextMiddleware(sessionProvider);
   app.use("*", async (ctx, next) => {
     ctx.set("db", deps.db);
     ctx.set("env", deps.env);
@@ -248,6 +275,11 @@ export function createApp(deps: { db: DbInstance; env: typeof env }) {
       },
     });
   });
+
+  // ========================================================================
+  // Authentication routes
+  // ========================================================================
+  registerAuth(app);
 
   // ========================================================================
   // Invoice CRUD routes
@@ -416,6 +448,20 @@ export function createApp(deps: { db: DbInstance; env: typeof env }) {
 async function startServer() {
   const { createInMemoryAdapter } = await import("@kongmy-stack/db");
   const db = await createInMemoryAdapter();
+
+  // Seed development data if not in production (ADR-0008)
+  if (env.NODE_ENV !== "production") {
+    const { seedDev } = await import("../../../scripts/seed-dev.ts");
+    await seedDev(db, {
+      read: invoiceResource.permissions.read,
+      create: invoiceResource.permissions.create,
+      update: invoiceResource.permissions.update,
+      delete: invoiceResource.permissions.delete,
+      post: invoiceLifecycle.post.permission,
+      cancel: invoiceLifecycle.cancel.permission,
+      send: sendInvoiceAction.permission,
+    });
+  }
 
   const app = createApp({ db, env });
 

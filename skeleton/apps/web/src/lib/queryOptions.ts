@@ -71,3 +71,20 @@ export const invoiceMutations = {
     },
   }),
 };
+
+/**
+ * Session query options — fetch current user + permissions.
+ * Used by beforeLoad guards and session hooks.
+ * Returns null if 401 (not authenticated).
+ */
+export const sessionQueries = {
+  current: () =>
+    queryOptions({
+      queryKey: ["auth", "me"],
+      queryFn: async () => {
+        const session = await apiClient.auth.me();
+        return session;
+      },
+      staleTime: 1000 * 60 * 10, // 10 minutes
+    }),
+};

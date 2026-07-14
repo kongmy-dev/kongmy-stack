@@ -150,4 +150,62 @@ async function initializeSchema(pg: PGlite): Promise<void> {
       updated_at TIMESTAMP WITH TIME ZONE NOT NULL
     )
   `);
+
+  // Create better_auth_user table
+  await pg.exec(`
+    CREATE TABLE IF NOT EXISTS better_auth_user (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      email_verified BOOLEAN NOT NULL DEFAULT false,
+      name TEXT,
+      image TEXT,
+      created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+      updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+    )
+  `);
+
+  // Create better_auth_session table
+  await pg.exec(`
+    CREATE TABLE IF NOT EXISTS better_auth_session (
+      id TEXT PRIMARY KEY,
+      expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+      updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+      ip_address TEXT,
+      user_agent TEXT,
+      user_id TEXT NOT NULL
+    )
+  `);
+
+  // Create better_auth_account table with password column (ADR-0008 credentials)
+  await pg.exec(`
+    CREATE TABLE IF NOT EXISTS better_auth_account (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      account_id TEXT NOT NULL,
+      provider_id TEXT NOT NULL,
+      password TEXT,
+      access_token TEXT,
+      refresh_token TEXT,
+      access_token_expires_at TIMESTAMP WITH TIME ZONE,
+      refresh_token_expires_at TIMESTAMP WITH TIME ZONE,
+      scope TEXT,
+      id_token TEXT,
+      created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+      updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+    )
+  `);
+
+  // Create better_auth_verification table
+  await pg.exec(`
+    CREATE TABLE IF NOT EXISTS better_auth_verification (
+      id TEXT PRIMARY KEY,
+      identifier TEXT NOT NULL,
+      value TEXT NOT NULL,
+      expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE,
+      updated_at TIMESTAMP WITH TIME ZONE
+    )
+  `);
 }

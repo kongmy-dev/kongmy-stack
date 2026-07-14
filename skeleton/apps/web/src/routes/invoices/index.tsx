@@ -9,17 +9,19 @@
  *
  * UI: vendored sapphire components (Button/Table/Badge — source-owned, ADR boundary).
  * Strings: generated Paraglide catalog only.
+ * Auth: beforeLoad guard redirects to /login if not authenticated.
  */
 
 import { useNavigate } from "@tanstack/react-router";
 import {
   useSuspenseQuery,
   useMutation,
+  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { useState } from "react";
-import { invoiceQueries, invoiceMutations } from "../../lib/queryOptions";
-import { invoiceListItem } from "@kongmy-stack/contract";
+import { invoiceQueries, invoiceMutations, sessionQueries } from "../../lib/queryOptions";
+import { invoiceListItem, invoiceResource } from "@kongmy-stack/contract";
 import { z } from "zod";
 import { ApiError } from "../../lib/api";
 import { useLocale } from "../../contexts/localeContext";
@@ -77,6 +79,9 @@ export default function InvoiceListPage() {
   );
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Session: Fetch current user permissions (seam 7)
+  const { data: session } = useQuery(sessionQueries.current());
+
   // Query: Fetch invoices (seam 2)
   const { data: listResponse } = useSuspenseQuery(
     invoiceQueries.list({
@@ -131,10 +136,7 @@ export default function InvoiceListPage() {
 
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold" data-testid="page-title">{m.invoices_list_title()}</h1>
-        <Button
-          onClick={() => navigate({ to: "/invoices/create" })}
-          data-testid="create-invoice-btn"
-        >
+        <Button onClick={() => navigate({ to: "/invoices/create" })} data-testid="create-invoice-btn">
           {m.invoices_create_title()}
         </Button>
       </div>
@@ -201,15 +203,17 @@ export default function InvoiceListPage() {
                       >
                         {m.common_edit()}
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={deleteMutation.isPending}
-                        onClick={() => handleDelete(invoice.id)}
-                        data-testid={`delete-invoice-${invoice.id}`}
-                      >
-                        {m.common_delete()}
-                      </Button>
+                      {session?.permissions.includes(invoiceResource.permissions.delete) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => handleDelete(invoice.id)}
+                          data-testid={`delete-invoice-${invoice.id}`}
+                        >
+                          {m.common_delete()}
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -250,3 +254,4 @@ export default function InvoiceListPage() {
     </div>
   );
 }
+

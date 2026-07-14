@@ -17,6 +17,12 @@ const envSchema = z.object({
     .default("file::memory:")
     .describe("PGlite file path, postgres://, or omit for in-memory"),
 
+  // Authentication (ADR-0008)
+  BETTER_AUTH_SECRET: z
+    .string()
+    .default("dev-secret-key")
+    .describe("Session token secret for Bun.password operations"),
+
   // Tracing / Observability (OTel per ADR-0010)
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional().describe("OTLP collector endpoint; console default"),
   OTEL_TRACE_ENABLED: z.enum(["true", "false"]).default("false"),
@@ -40,6 +46,7 @@ export function loadEnv(): Environment {
     NODE_ENV: process.env.NODE_ENV,
     PORT: process.env.PORT,
     DATABASE_URL: process.env.DATABASE_URL,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
     OTEL_TRACE_ENABLED: process.env.OTEL_TRACE_ENABLED,
     SENTRY_DSN: process.env.SENTRY_DSN,
