@@ -1,0 +1,216 @@
+/* ════════════════════════════════════════════════════════════════════════
+   Sapphire UI — Public Design-Token Contract
+   ────────────────────────────────────────────────────────────────────────
+   This file is the SINGLE SOURCE for Sapphire's brand tokens, expressed as a
+   Tailwind v4 `@theme {}` block. It is shipped RAW (uncompiled) to consumers
+   so that a Tailwind v4 app can extend its own utility generation from these
+   tokens:
+
+       @import 'tailwindcss';
+       @import '@kongmy-dev/sapphire-ui/theme.css';   ← contributes @theme tokens
+
+   With this import, the consumer's Tailwind generates ANY utility referencing
+   a Sapphire token on demand (`text-text-muted`, `bg-primary-hover`,
+   `marker:text-accent`, …) — no re-declaring tokens in the app's own @theme.
+
+   IMPORTANT
+   - Keep this file framework-agnostic and build-free: only `@theme`, plain
+     custom-property declarations, and `[data-theme]` overrides. No utilities,
+     no component CSS, no `@import 'tailwindcss'` — the consumer owns that.
+   - `src/index.css` imports this file, so editing tokens here updates both the
+     prebuilt `sapphire-ui.css` bundle AND the raw `theme.css` consumers extend.
+   - Tailwind v4 emits every `@theme` token into `:root`; the `[data-theme="dark"]`
+     block below (a normal rule, higher specificity than `:root`) overrides the
+     subset that flips in dark mode — exactly as the prebuilt bundle does.
+
+   Contrast note (WCAG 2.1 AA): `--color-accent` (#c5a065) is a DECORATIVE fill.
+   For text on light surfaces use `--color-accent-text` (#8a5a1f, 4.6:1). On dark
+   surfaces the brand gold passes AA, so the dark block reverts accent-text to it.
+   ════════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Brand ──────────────────────────────────────────────── */
+  --color-primary: #0a192f; /* Dark navy — brand fill. Does NOT flip in dark mode. */
+  --color-primary-hover: #1a3358;
+  --color-accent: #c5a065; /* Gold — decorative fill only (not AA for text on light) */
+  --color-accent-dark: #b8904f; /* Gold hover (decorative) */
+  --color-accent-text: #8a5a1f; /* Gold — AA-safe for text on light surface (4.6:1) */
+  --color-accent-on-fill: #b8904f; /* Brand gold for text/icons sitting ON a tinted or
+    coloured fill (accent-tinted callout, navy surface) where the fill — not the page —
+    supplies the contrast context. Brighter than --color-accent-text; do NOT use on the
+    plain page surface (use --color-accent-text there). */
+  --color-surface: #f4f6f8; /* Off-white page background */
+
+  /* ── Text ───────────────────────────────────────────────── */
+  --color-text-main: #1e293b;
+  --color-text-strong: #0a192f; /* Headings/strong text — flips light in dark mode */
+  --color-text-muted: #475569; /* AA-safe (7.0:1) on --color-surface */
+  --color-text-on-dark: #f1f5f9;
+  --color-text-on-dark-muted: rgb(241, 245, 249, 0.65);
+
+  /* ── Semantic / Status ──────────────────────────────────── */
+  --color-success: #15803d;
+  --color-success-bg: rgb(34, 197, 94, 0.1);
+  --color-success-border: rgb(34, 197, 94, 0.2);
+  --color-error: #b91c1c;
+  --color-error-hover: #991b1b;
+  --color-error-ring: #dc2626;
+  --color-error-bg: rgb(239, 68, 68, 0.1);
+  --color-error-border: rgb(239, 68, 68, 0.2);
+  --color-warning: #b45309;
+  --color-warning-bg: rgb(245, 158, 11, 0.1);
+  --color-warning-border: rgb(245, 158, 11, 0.2);
+  --color-info: #1d4ed8;
+  --color-info-bg: rgb(59, 130, 246, 0.1);
+  --color-info-border: rgb(59, 130, 246, 0.2);
+
+  /* ── Borders / States / Surfaces ────────────────────────── */
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1; /* Form-control borders — heavier than hairline */
+  --color-border-dark: rgb(255, 255, 255, 0.12);
+  --color-hover-overlay: rgb(197, 160, 101, 0.08);
+  --color-focus-ring: #c5a065;
+  --color-white: #fff;
+  --color-card-bg: #fff;
+  --color-card-dark-bg: var(--color-primary);
+
+  /* ── Typography families ────────────────────────────────── */
+  --font-serif: "Newsreader", georgia, serif;
+  --font-sans: "Source Sans 3", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* ── Type scale (fluid display sizes via clamp) ─────────── */
+  --text-display-xl: clamp(2.5rem, 6vw, 4.5rem); /* Hero h1 */
+  --text-display: clamp(2rem, 4vw, 3.25rem); /* Section h2 */
+  --text-heading: clamp(1.5rem, 3vw, 2rem); /* h3 */
+  --text-subheading: 1.25rem; /* h4 */
+  --text-lg: 1.125rem;
+  --text-base: 1rem;
+  --text-sm: 0.875rem;
+  --text-xs: 0.75rem;
+
+  /* ── Line heights ───────────────────────────────────────── */
+  --leading-tight: 1.2;
+  --leading-snug: 1.375;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+
+  /* ── Spacing (4px base grid) ────────────────────────────── */
+  --space-1: 0.25rem; /*   4px */
+  --space-2: 0.5rem; /*   8px */
+  --space-3: 0.75rem; /*  12px */
+  --space-4: 1rem; /*  16px */
+  --space-5: 1.25rem; /*  20px */
+  --space-6: 1.5rem; /*  24px */
+  --space-8: 2rem; /*  32px */
+  --space-10: 2.5rem; /*  40px */
+  --space-12: 3rem; /*  48px */
+  --space-16: 4rem; /*  64px */
+  --space-24: 6rem; /*  96px */
+  --space-32: 8rem; /* 128px */
+
+  /* ── Radii ──────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 8px; /* Cards */
+  --radius-btn: 6px; /* Buttons */
+  --radius-pill: 9999px; /* Tags, badges */
+
+  /* ── Elevation & motion ─────────────────────────────────────
+     Shared so card hover-lift and transitions are consistent across
+     consumers. `Card hoverable` uses --shadow-card-hover. */
+  --shadow-sm: 0 1px 3px rgb(10, 25, 47, 0.06), 0 1px 2px rgb(10, 25, 47, 0.04);
+  --shadow-md:
+    0 4px 16px rgb(10, 25, 47, 0.08), 0 2px 6px rgb(10, 25, 47, 0.05);
+  --shadow-lg:
+    0 8px 32px rgb(10, 25, 47, 0.12), 0 4px 12px rgb(10, 25, 47, 0.07);
+  --shadow-card-hover: 0 8px 24px rgb(10, 25, 47, 0.12);
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 350ms ease;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   shadcn semantic-token layer (canonical vocabulary)
+   ────────────────────────────────────────────────────────────────────────
+   Sapphire speaks shadcn's semantic token names as its first-class vocabulary,
+   expressed as var() aliases onto the brand tokens above. This lets Sapphire
+   components AND community/upstream shadcn items share one vocabulary, and lets
+   Tailwind-v4 consumers use `bg-background`, `text-muted-foreground`,
+   `bg-sidebar`, … out of the box. Dark mode is free: every alias references a
+   brand token, so the [data-theme="dark"] block below flips them automatically.
+   Names Sapphire already owns (--color-primary, --color-accent, --color-border)
+   intentionally coincide. Brand-only tokens with no shadcn equivalent
+   (--color-accent-text, --color-text-strong, --color-hover-overlay,
+   --color-text-on-dark, --radius-btn) remain the Sapphire brand extension. */
+@theme {
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-text-main);
+
+  --color-card: var(--color-card-bg);
+  --color-card-foreground: var(--color-text-main);
+  --color-popover: var(--color-card-bg);
+  --color-popover-foreground: var(--color-text-main);
+
+  /* --color-primary already defined (navy) — add its foreground */
+  --color-primary-foreground: var(--color-text-on-dark);
+
+  --color-secondary: var(--color-surface);
+  --color-secondary-foreground: var(--color-text-main);
+
+  --color-muted: var(--color-surface);
+  --color-muted-foreground: var(--color-text-muted);
+
+  /* --color-accent already defined (gold) — shadcn accent surfaces render gold,
+     so its foreground is navy for AA contrast */
+  --color-accent-foreground: var(--color-primary);
+
+  --color-destructive: var(--color-error);
+  --color-destructive-foreground: var(--color-white);
+
+  /* status foregrounds (Sapphire defines the base colours) */
+  --color-success-foreground: var(--color-white);
+  --color-warning-foreground: var(--color-white);
+  --color-info-foreground: var(--color-white);
+
+  /* --color-border already defined — add input + focus ring */
+  --color-input: var(--color-border-strong);
+  --color-ring: var(--color-focus-ring);
+
+  /* Sidebar (shadcn sidebar block / admin shell) — Sapphire's navy shell with
+     a gold active indicator. */
+  --color-sidebar: var(--color-primary);
+  --color-sidebar-foreground: var(--color-text-on-dark);
+  --color-sidebar-primary: var(--color-accent);
+  --color-sidebar-primary-foreground: var(--color-primary);
+  --color-sidebar-accent: var(--color-primary-hover);
+  --color-sidebar-accent-foreground: var(--color-text-on-dark);
+  --color-sidebar-border: var(--color-border-dark);
+  --color-sidebar-ring: var(--color-focus-ring);
+
+  /* Chart categorical slots → Sapphire palette (gold, navy, blue, green, amber) */
+  --color-chart-1: var(--color-accent);
+  --color-chart-2: var(--color-primary);
+  --color-chart-3: var(--color-info);
+  --color-chart-4: var(--color-success);
+  --color-chart-5: var(--color-warning);
+
+  /* shadcn radius scale — Sapphire defines --radius-sm/md; add lg/xl */
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* ── Dark theme ───────────────────────────────────────────────
+   Activated by `data-theme="dark"` on <html> (or any ancestor). Only the
+   tokens that visually flip are listed; everything else inherits the @theme
+   light value above. --color-primary intentionally does NOT flip. */
+[data-theme="dark"] {
+  --color-surface: #0a192f;
+  --color-card-bg: #112240;
+  --color-text-main: #f1f5f9;
+  --color-text-strong: #f1f5f9;
+  --color-text-muted: rgb(241, 245, 249, 0.72);
+  --color-border: rgb(255, 255, 255, 0.12);
+  --color-border-strong: rgb(255, 255, 255, 0.28);
+  --color-accent-text: #c5a065;
+  --color-accent-on-fill: #c5a065; /* brighter brand gold reads better on dark fills */
+}

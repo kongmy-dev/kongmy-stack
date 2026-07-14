@@ -16,6 +16,10 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Generated JS (Paraglide catalog) carries its types as JSDoc */
+    "allowJs": true,
+    "checkJs": false,
+
     /* Strictness */
     "strict": true,
     "noUnusedLocals": true,

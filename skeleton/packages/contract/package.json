@@ -3,15 +3,14 @@
   "version": "0.0.0",
   "description": "Zod SSOT: contracts, helpers, pagination, error codes",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
+    ".": "./src/index.ts"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "check:describe": "bun run scripts/check-describe.ts",
     "check:no-any": "bun run scripts/check-no-any.ts"

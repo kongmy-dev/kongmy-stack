@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./src/index.ts"
   },
   "files": [
     "dist",
@@ -24,5 +24,6 @@
   "devDependencies": {
     "typescript": "^5.3.3",
     "drizzle-kit": "^0.20.14"
-  }
+  },
+  "main": "./src/index.ts"
 }
