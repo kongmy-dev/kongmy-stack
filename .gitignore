@@ -9,3 +9,7 @@ dist/
 # agent worktrees + spike test residue
 .claude/
 spikes/**/.conformance-test-data/
+
+# Playwright artifacts
+skeleton/playwright-report/
+skeleton/test-results/
