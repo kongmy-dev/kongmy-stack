@@ -5,3 +5,7 @@ dist/
 !.env.example
 *.tsbuildinfo
 .DS_Store
+
+# agent worktrees + spike test residue
+.claude/
+spikes/**/.conformance-test-data/

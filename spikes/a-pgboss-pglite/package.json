@@ -1,0 +1,17 @@
+{
+  "name": "a-pgboss-pglite",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "pg": "^8.22.0",
+    "pg-boss": "^12.26.0"
+  }
+}

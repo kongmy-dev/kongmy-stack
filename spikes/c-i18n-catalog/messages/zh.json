@@ -1,0 +1,13 @@
+{
+  "greeting": "你好，世界！",
+  "welcome": "欢迎来到 Paraglide i18n 演示",
+  "user_greeting": "你好，{name}!",
+  "items_count": "{count, plural, one {你有 {count} 个项目} other {你有 {count} 个项目}}",
+  "item_page_title": "项目",
+  "settings_page_title": "设置",
+  "locale_label": "语言：",
+  "switch_locale_button": "切换到 {locale}",
+  "error_validation_failed": "验证失败",
+  "error_not_found": "找不到项目",
+  "error_unauthorized": "您没有权限访问此资源"
+}

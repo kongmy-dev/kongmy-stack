@@ -5,9 +5,9 @@
 
 ## Phase 1a — Spikes (do first)
 
-- [ ] **Spike A: pg-boss on PGlite** — stand up pg-boss against a PGlite instance; enqueue, work, retry, fail-to-dead-letter. Outcome → ADR: either "PGlite lane uses pg-boss" (delete fallback plan) or "PGlite lane uses minimal SQL impl" (spec it: jobs table + SKIP LOCKED worker + backoff).
-- [ ] **Spike B: `@hono/zod-openapi` × zod v4** — define 3 representative routes (list w/ pagination, create w/ body validation, get w/ params + error cases). Assess: zod v4 compat, route-definition ergonomics, OpenAPI output quality. Fallback candidate: `hono-openapi`. Outcome → ADR naming the adapter.
-- [ ] **Spike C (small): message catalog lib** — Paraglide JS vs i18next (ADR-0007). Criteria: typed keys (compile error on missing), bundle cost, Vite + TanStack integration, plural/ICU. Outcome → note in ADR-0007.
+- [x] **Spike A: pg-boss on PGlite** — DONE (ADR-0012): pg-boss runs on PGlite via first-party `fromPglite()`; SQL-fallback plan dead. Hardened by a 3-lane conformance suite (PGlite mem/file + Postgres 16, 6 assertions incl. dead-letter + process-kill restart, all green) → seeds `modules/queue` contract tests. See `docs/spikes/queue-pgboss.md`.
+- [x] **Spike B: `@hono/zod-openapi` × zod v4** — DONE (ADR-0011): `@hono/zod-openapi` picked; zod v4 proven on 3 routes; contracts stay pure, `.openapi()` wrapping confined to adapter layer. `hono-openapi` rejected (spec generation undocumented). See `docs/spikes/openapi-adapter.md`.
+- [x] **Spike C (small): message catalog lib** — DONE (ADR-0013): Paraglide JS; compile-time key safety + 2.2 KB runtime; validated in a real Vite+React+TanStack app w/ live en→ms→zh switching (5/5 tests). T6 wiring reference: `spikes/c-i18n-catalog/app/`. See `docs/spikes/i18n-paraglide.md`.
 
 ## Phase 1b — Skeleton: backend
 

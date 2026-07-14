@@ -109,4 +109,6 @@ graph LR
 
 ## Outcome notes (threads append here)
 
-- _(empty)_
+- **2026-07-14 · T1 complete** (3 spikes + hardening round). Picks: `@hono/zod-openapi` (ADR-0011) · **pg-boss on ALL PG lanes** incl. PGlite via first-party `fromPglite()`, minimal-SQL fallback dead (ADR-0012) · Paraglide JS, real-app-proven (ADR-0013). Consolidated archive w/ snippets: `docs/spikes/`. Queue conformance suite (3 lanes × 6 assertions, green) seeds `modules/queue` contract tests. **Sapphire v3 registry live + true-CLI smoke green against production** → T6 vendors for real; interim shadcn fallback no longer needed.
+- **Process delta:** round-1 agents leaked commits onto `main` by cd-ing to the repo root (reset to 546f2ce; content preserved on branches). Thread briefs now pin cwd=worktree with a `git rev-parse --show-toplevel` guard; `.claude/` gitignored. Round 2 stayed clean.
+- **Stub-manifest rule (T2 vs T3/T4):** T2 may create *stub* `package.json` + placeholder `src/index.ts` in `skeleton/packages/*` / `skeleton/apps/*` so `bun run ci` has something to chew; owning threads' versions supersede at wave-boundary merge (path-based checkout, no textual conflicts).

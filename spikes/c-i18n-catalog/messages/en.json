@@ -1,0 +1,13 @@
+{
+  "greeting": "Hello, World!",
+  "welcome": "Welcome to the Paraglide i18n demo",
+  "user_greeting": "Hello, {name}!",
+  "items_count": "{count, plural, one {You have {count} item} other {You have {count} items}}",
+  "item_page_title": "Items",
+  "settings_page_title": "Settings",
+  "locale_label": "Language:",
+  "switch_locale_button": "Switch to {locale}",
+  "error_validation_failed": "Validation failed",
+  "error_not_found": "Item not found",
+  "error_unauthorized": "You do not have permission to access this resource"
+}

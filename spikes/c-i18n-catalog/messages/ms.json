@@ -1,0 +1,13 @@
+{
+  "greeting": "Halo, Dunia!",
+  "welcome": "Selamat datang ke demo Paraglide i18n",
+  "user_greeting": "Halo, {name}!",
+  "items_count": "{count, plural, one {Anda mempunyai {count} item} other {Anda mempunyai {count} items}}",
+  "item_page_title": "Item",
+  "settings_page_title": "Tetapan",
+  "locale_label": "Bahasa:",
+  "switch_locale_button": "Tukar ke {locale}",
+  "error_validation_failed": "Pengesahan gagal",
+  "error_not_found": "Item tidak ditemui",
+  "error_unauthorized": "Anda tidak mempunyai kebenaran untuk mengakses sumber ini"
+}

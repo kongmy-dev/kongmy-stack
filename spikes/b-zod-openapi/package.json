@@ -1,0 +1,22 @@
+{
+  "name": "spike-zod-openapi",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev:hono-zod": "bun run src/hono-zod-openapi.ts",
+    "dev:hono": "bun run src/hono-openapi.ts",
+    "build": "echo 'No build needed for spike'"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "bun-types": "latest",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "zod": "^4.0.0",
+    "@hono/zod-openapi": "^0.15.0",
+    "hono-openapi": "^1.0.0",
+    "@hono/standard-validator": "latest"
+  }
+}

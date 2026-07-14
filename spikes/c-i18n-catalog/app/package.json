@@ -1,0 +1,28 @@
+{
+  "name": "paraglide-react-app",
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "paraglide-js compile --project ../project.inlang && vite",
+    "build": "paraglide-js compile --project ../project.inlang && tsc && vite build",
+    "preview": "vite preview",
+    "test": "bun test",
+    "type-error": "tsc --noEmit 2>&1 | grep 'test-type-error' || echo 'Type error test file would fail tsc'"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@inlang/paraglide-js": "^1.10.0",
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.1.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "vitest": "^2.0.0",
+    "happy-dom": "^12.10.0"
+  }
+}

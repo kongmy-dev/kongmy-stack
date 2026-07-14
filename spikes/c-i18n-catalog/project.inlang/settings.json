@@ -1,0 +1,13 @@
+{
+  "$schema": "https://inlang.com/schema/project-settings",
+  "projectId": "paraglide-spike-c",
+  "sourceLanguageTag": "en",
+  "languageTags": ["en", "ms", "zh"],
+  "modules": [
+    "https://cdn.jsdelivr.net/npm/@inlang/message-lint-rules@latest/dist/index.js",
+    "https://cdn.jsdelivr.net/npm/@inlang/plugin-message-format@latest/dist/index.js"
+  ],
+  "plugin.inlang.messageFormat": {
+    "pathPattern": "./messages/{languageTag}.json"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "conformance-queue-pgboss",
+  "module": "suite.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "bun run test:all",
+    "test:all": "bun run test:pglite-memory && bun run test:pglite-file && bun run test:postgres",
+    "test:pglite-memory": "bun test-memory.ts",
+    "test:pglite-file": "bun test-file.ts",
+    "test:postgres": "bun test-postgres.ts",
+    "restart:pglite-file": "bun restart/restart-pglite-file.ts",
+    "restart:postgres": "bun restart/restart-postgres.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "pg": "^8.22.0",
+    "pg-boss": "^12.26.0"
+  }
+}

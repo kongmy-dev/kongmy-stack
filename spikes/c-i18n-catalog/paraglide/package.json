@@ -1,0 +1,19 @@
+{
+  "name": "paraglide",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "paraglide-js compile",
+    "dev": "bun run build && bun run index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@inlang/paraglide-js": "^2.21.0"
+  }
+}
