@@ -5,18 +5,44 @@
  * produced by the real contract validator and real errorHandler.
  */
 import { describe, expect, it, beforeAll } from "bun:test";
-import { createTestApp, createTestInvoice } from "../../../api/src/test-utils.js";
+import { createTestAppWithRealAuth, createTestInvoice } from "../../../api/src/test-utils.js";
 import { makeApiClient, ApiError, type ApiClient } from "../lib/api";
 import { mapValidationErrorToForm } from "../lib/errorMapper";
 
 let client: ApiClient;
+let app: any;
 
 beforeAll(async () => {
-  const { app } = await createTestApp();
+  const testApp = await createTestAppWithRealAuth();
+  app = testApp.app;
+
+  // Authenticate via real auth path: POST /auth/sign-in (seam 7)
+  const signInRes = await app.request("/auth/sign-in", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: "admin@dev.local",
+      password: "dev-admin-password",
+    }),
+  });
+
+  // Extract session cookie from response
+  let sessionCookie = "";
+  const setCookieHeader = signInRes.headers.get("set-cookie");
+  if (setCookieHeader) {
+    sessionCookie = setCookieHeader.split(";")[0];
+  }
+
+  // Create client that forwards cookies in requests
   client = makeApiClient({
     baseUrl: "",
-    fetchFn: ((input: RequestInfo | URL, init?: RequestInit) =>
-      app.request(input as string, init)) as typeof fetch,
+    fetchFn: ((input: RequestInfo | URL, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      if (sessionCookie) {
+        headers.set("Cookie", sessionCookie);
+      }
+      return app.request(input as string, { ...init, headers });
+    }) as typeof fetch,
   });
 });
 
@@ -64,7 +90,8 @@ describe("web client against the real API app", () => {
   });
 
   it("unauthenticated request surfaces UNAUTHORIZED through the client", async () => {
-    const { app } = await createTestApp();
+    // Create anonymous client without session cookie (no Cookie header).
+    // Pass x-anonymous header to signal mock auth should return null (seam 7 test protocol).
     const anonClient = makeApiClient({
       baseUrl: "",
       fetchFn: ((input: RequestInfo | URL, init?: RequestInit) => {

@@ -44,7 +44,9 @@ export function headerMockProvider(): SessionProvider {
   return {
     async getSession(ctx: Context): Promise<Session | null> {
       // x-anonymous: true signals 401 (no session)
-      if (ctx.req.header("x-anonymous") === "true") {
+      const hasAnonymousHeader = ctx.req.header("x-anonymous") === "true";
+
+      if (hasAnonymousHeader) {
         return null;
       }
 

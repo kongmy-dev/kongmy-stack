@@ -95,17 +95,19 @@ async function handleErrorResponse(response: Response): Promise<never> {
 export interface ApiClientOptions {
   fetchFn?: typeof fetch;
   baseUrl?: string;
+  headers?: Record<string, string>;
 }
 
 export function makeApiClient(options: ApiClientOptions = {}) {
   const fetchFn = options.fetchFn ?? fetch;
   const baseUrl = options.baseUrl ?? API_BASE;
+  const customHeaders = options.headers ?? {};
 
   /**
    * Internal fetch wrapper with error handling.
-   * Session headers are mock (x-user-id, x-roles, x-org-id) — the api's
-   * context middleware parses x-roles as a comma-separated list.
-   * SWAP POINT (seam 7): Replace mock headers with BetterAuth session.
+   * Authentication via session cookie (credentials: "include" sends it automatically).
+   * SWAP POINT (seam 7): Real session cookie from BetterAuth; Wave A tests pass
+   * custom headers via options for contract-level testing through app.request().
    */
   async function apiFetch<T>(
     method: "GET" | "POST" | "PUT" | "DELETE",
@@ -129,13 +131,9 @@ export function makeApiClient(options: ApiClientOptions = {}) {
       }
     }
 
-    // SWAP POINT (seam 7): Replace with BetterAuth session headers
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      // Mock session headers for development (x-roles: comma-separated)
-      "x-user-id": "user_000000000000000000000000001",
-      "x-org-id": "org_000000000000000000000000001",
-      "x-roles": "admin",
+      ...customHeaders,
     };
 
     const response = await fetchFn(url, {

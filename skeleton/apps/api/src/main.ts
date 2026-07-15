@@ -24,7 +24,10 @@ import {
 import type { DbInstance } from "@kongmy-stack/db";
 import { routes } from "./routes/index.js";
 import { registerAuth } from "./routes/auth.js";
+import { registerRealtime } from "./routes/realtime.js";
 import { betterAuthProvider, headerMockProvider } from "./lib/session.js";
+import { inMemoryPublisher, type RealtimePublisher } from "./lib/realtime.js";
+import { inMemoryNotifier, type Notifier } from "./lib/notifier.js";
 import { loadEnv } from "./env.js";
 import { invoiceResource, invoiceLifecycle, sendInvoiceAction } from "@kongmy-stack/contract";
 
@@ -43,6 +46,8 @@ export interface AppContext {
   // App-level deps (from main.ts)
   db: DbInstance;
   env: typeof env;
+  publisher: RealtimePublisher;
+  notifier: Notifier;
 
   // Request-level data (from middleware)
   requestId: string;
@@ -227,6 +232,8 @@ export function createApp(deps: {
   db: DbInstance;
   env: typeof env;
   sessionProvider?: any;
+  publisher?: RealtimePublisher;
+  notifier?: Notifier;
 }) {
   const app = new OpenAPIHono<AppBindings>({
     defaultHook: (result) => {
@@ -252,11 +259,17 @@ export function createApp(deps: {
     deps.env.NODE_ENV === "test" ? headerMockProvider() : betterAuthProvider(deps.db)
   );
 
+  // Create seam instances if not provided (for tests or standalone server)
+  const publisher = deps.publisher || inMemoryPublisher();
+  const notifier = deps.notifier || inMemoryNotifier();
+
   // Context middleware: inject app deps + request-level data
   const contextMiddleware = createContextMiddleware(sessionProvider);
   app.use("*", async (ctx, next) => {
     ctx.set("db", deps.db);
     ctx.set("env", deps.env);
+    ctx.set("publisher", publisher);
+    ctx.set("notifier", notifier);
     await contextMiddleware(ctx, next);
   });
 
@@ -280,6 +293,11 @@ export function createApp(deps: {
   // Authentication routes
   // ========================================================================
   registerAuth(app);
+
+  // ========================================================================
+  // Realtime SSE endpoint
+  // ========================================================================
+  registerRealtime(app, publisher);
 
   // ========================================================================
   // Invoice CRUD routes
@@ -472,6 +490,10 @@ async function startServer() {
   Bun.serve({
     port,
     fetch: app.fetch,
+    // Bun kills idle connections after 10s by default — that beheads every
+    // SSE stream (/realtime). 0 disables the idle timeout; the SSE route's
+    // 30s keep-alive still exists for intermediary proxies.
+    idleTimeout: 0,
   });
 
   const shutdown = async () => {

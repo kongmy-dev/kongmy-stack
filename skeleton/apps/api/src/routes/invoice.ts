@@ -17,6 +17,7 @@ import {
   createInvoice,
   updateInvoice,
   deleteInvoice,
+  sendInvoice,
 } from "../services/invoice.js";
 
 // ============================================================================
@@ -166,5 +167,19 @@ export function registerInvoice(app: any) {
     const ctx = c.var as AppBindings["Variables"];
     const id = c.req.param("id") || "";
     return c.json(await deleteInvoice(ctx, id));
+  });
+
+  const sendRoute = createRoute({
+    method: "post",
+    path: "/invoices/:id/send",
+    summary: "Send invoice",
+    request: { params: z.object({ id: z.string().describe("Invoice ID") }) },
+    responses: { 200: { description: "Sent", content: { "application/json": { schema: z.object({ id: z.string(), status: z.string() }) } } } },
+  });
+
+  app.openapi(sendRoute, async (c: any) => {
+    const ctx = c.var as AppBindings["Variables"];
+    const id = c.req.param("id") || "";
+    return c.json(await sendInvoice(ctx, id));
   });
 }

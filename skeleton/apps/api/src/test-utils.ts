@@ -6,16 +6,57 @@
  */
 
 import { createInMemoryAdapter, generateId } from "@kongmy-stack/db";
-import { invoiceCreateInput, type InvoiceCreateInput } from "@kongmy-stack/contract";
+import { invoiceCreateInput, invoiceResource, invoiceLifecycle, sendInvoiceAction, type InvoiceCreateInput } from "@kongmy-stack/contract";
 import { createApp, env } from "./main.js";
+import { seedDev } from "../../../scripts/seed-dev.js";
 
 /**
  * createTestApp: factory for contract tests.
  * Returns app + in-memory db, ready for app.request().
+ * Seeds database with test users + roles (admin@dev.local, clerk@dev.local).
+ * Uses headerMockProvider (default for NODE_ENV=test) for seam testing with x-headers.
  */
 export async function createTestApp() {
   const db = await createInMemoryAdapter();
+
+  // Seed test data (users, roles, organizations)
+  await seedDev(db, {
+    read: invoiceResource.permissions.read,
+    create: invoiceResource.permissions.create,
+    update: invoiceResource.permissions.update,
+    delete: invoiceResource.permissions.delete,
+    post: invoiceLifecycle.post.permission,
+    cancel: invoiceLifecycle.cancel.permission,
+    send: sendInvoiceAction.permission,
+  });
+
   const app = createApp({ db, env });
+
+  return { app, db };
+}
+
+/**
+ * createTestAppWithRealAuth: factory for seam 7 tests (real auth via cookies + DB lookup).
+ * Used by realApp.test.ts to test with betterAuthProvider instead of headerMockProvider.
+ */
+export async function createTestAppWithRealAuth() {
+  const { betterAuthProvider } = await import("./lib/session.js");
+
+  const db = await createInMemoryAdapter();
+
+  // Seed test data (users, roles, organizations)
+  await seedDev(db, {
+    read: invoiceResource.permissions.read,
+    create: invoiceResource.permissions.create,
+    update: invoiceResource.permissions.update,
+    delete: invoiceResource.permissions.delete,
+    post: invoiceLifecycle.post.permission,
+    cancel: invoiceLifecycle.cancel.permission,
+    send: sendInvoiceAction.permission,
+  });
+
+  // Use betterAuthProvider for real auth (seam 7)
+  const app = createApp({ db, env, sessionProvider: betterAuthProvider(db) });
 
   return { app, db };
 }

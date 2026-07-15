@@ -66,7 +66,6 @@ test.describe("smoke: Wave A auth + CRUD", () => {
   test("css/theme loading", async ({ page }) => {
     await loginAs(page, "admin@dev.local", "dev-admin-password");
     await page.goto("/invoices");
-    await page.waitForLoadState("networkidle");
     const btn = page.locator('button[data-testid="create-invoice-btn"]').first();
     await expect(btn).toBeVisible();
   });
@@ -74,7 +73,7 @@ test.describe("smoke: Wave A auth + CRUD", () => {
   test("form validation: 422 field error", async ({ page }) => {
     await loginAs(page, "admin@dev.local", "dev-admin-password");
     await page.goto("/invoices/create");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator('input[data-testid="customer-name-input"]').first()).toBeVisible();
     await fillInvoiceForm(page, {
       customer: `Test ${runId}`,
       number: `INV-9${runId}`,
@@ -91,7 +90,7 @@ test.describe("smoke: Wave A auth + CRUD", () => {
   test("create invoice (admin)", async ({ page }) => {
     await loginAs(page, "admin@dev.local", "dev-admin-password");
     await page.goto("/invoices/create");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator('input[data-testid="customer-name-input"]').first()).toBeVisible();
 
     // Calculate expected dates (today and 30 days from now)
     // Dates are formatted as toLocaleDateString() in the table
@@ -108,8 +107,7 @@ test.describe("smoke: Wave A auth + CRUD", () => {
       price: "100",
     });
     await page.locator('button[data-testid="submit-invoice-btn"]').first().click();
-    await page.waitForLoadState("networkidle");
-    expect(page.url()).toContain("/invoices");
+    await page.waitForURL("**/invoices");
     // Verify the created invoice appears in the list with correct dates
     const row = page.locator('tr[data-testid*="invoice-row"]').filter({ hasText: `Create ${runId}` }).first();
     await expect(row).toBeVisible({ timeout: 10000 });
@@ -121,7 +119,7 @@ test.describe("smoke: Wave A auth + CRUD", () => {
   test("edit invoice (admin)", async ({ page }) => {
     await loginAs(page, "admin@dev.local", "dev-admin-password");
     await page.goto("/invoices/create");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator('input[data-testid="customer-name-input"]').first()).toBeVisible();
     await fillInvoiceForm(page, {
       customer: `Edit ${runId}`,
       number: `INV-7${runId}`,
@@ -130,18 +128,17 @@ test.describe("smoke: Wave A auth + CRUD", () => {
       price: "500",
     });
     await page.locator('button[data-testid="submit-invoice-btn"]').first().click();
-    await page.waitForLoadState("networkidle");
+    await page.waitForURL("**/invoices");
     const row = page.locator('tr[data-testid*="invoice-row"]').filter({ hasText: `Edit ${runId}` }).first();
     await expect(row).toBeVisible({ timeout: 10000 });
     await row.locator('button[data-testid*="edit-invoice"]').click();
-    await page.waitForLoadState("networkidle");
-    expect(page.url()).toContain("/edit");
+    await page.waitForURL("**/edit");
   });
 
   test("delete button visible (admin)", async ({ page }) => {
     await loginAs(page, "admin@dev.local", "dev-admin-password");
     await page.goto("/invoices/create");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator('input[data-testid="customer-name-input"]').first()).toBeVisible();
     await fillInvoiceForm(page, {
       customer: `Delete ${runId}`,
       number: `INV-8${runId}`,
@@ -150,7 +147,7 @@ test.describe("smoke: Wave A auth + CRUD", () => {
       price: "100",
     });
     await page.locator('button[data-testid="submit-invoice-btn"]').first().click();
-    await page.waitForLoadState("networkidle");
+    await page.waitForURL("**/invoices");
     const row = page.locator('tr[data-testid*="invoice-row"]').filter({ hasText: `Delete ${runId}` }).first();
     await expect(row).toBeVisible({ timeout: 10000 });
     const btn = row.locator('button[data-testid*="delete-invoice"]');
@@ -160,7 +157,7 @@ test.describe("smoke: Wave A auth + CRUD", () => {
   test("delete invoice (admin)", async ({ page }) => {
     await loginAs(page, "admin@dev.local", "dev-admin-password");
     await page.goto("/invoices/create");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator('input[data-testid="customer-name-input"]').first()).toBeVisible();
     await fillInvoiceForm(page, {
       customer: `Final ${runId}`,
       number: `INV-99${runId}`,
@@ -169,29 +166,31 @@ test.describe("smoke: Wave A auth + CRUD", () => {
       price: "100",
     });
     await page.locator('button[data-testid="submit-invoice-btn"]').first().click();
-    await page.waitForLoadState("networkidle");
+    await page.waitForURL("**/invoices");
     const row = page.locator('tr[data-testid*="invoice-row"]').filter({ hasText: `Final ${runId}` }).first();
+    await expect(row).toBeVisible({ timeout: 10000 });
     await row.locator('button[data-testid*="delete-invoice"]').click();
     const confirm = page.locator('button:has-text("Confirm")').first();
     if (await confirm.isVisible({ timeout: 1000 }).catch(() => false)) await confirm.click();
-    await page.waitForLoadState("networkidle");
+    // Verify we stay on /invoices page after delete
+    expect(page.url()).toContain("/invoices");
   });
 
   test("locale switching", async ({ page }) => {
     await loginAs(page, "admin@dev.local", "dev-admin-password");
     await page.goto("/invoices");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator('h1[data-testid="page-title"]')).toBeVisible();
     const heading = page.locator('h1[data-testid="page-title"]').first();
     const en = await heading.textContent();
     await page.locator('[data-testid="locale-toggle"]').first().selectOption("ms");
-    await page.waitForTimeout(500);
+    await expect(heading).toContainText(/^(?!.*\Q${en}\E).*$/);
     const ms = await heading.textContent();
     expect(ms).not.toEqual(en);
   });
 
   test("anonymous /invoices redirects to /login", async ({ page }) => {
     await page.goto("/invoices");
-    await page.waitForNavigation({ timeout: 5000 }).catch(() => {});
+    await page.waitForURL("**/login");
     expect(page.url()).toContain("/login");
   });
 
@@ -205,7 +204,7 @@ test.describe("smoke: Wave A auth + CRUD", () => {
     expect(err.error.code).toBe("FORBIDDEN");
 
     await page.goto("/invoices");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator('table, [data-testid="invoices-table"]')).toBeVisible();
     const btns = page.locator('button:has-text("Delete")');
     expect(await btns.count()).toBe(0);
   });

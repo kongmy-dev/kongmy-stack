@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Outlet, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "../contexts/localeContext";
+import { useRealtime } from "../lib/useRealtime";
 import { sessionQueries } from "../lib/queryOptions";
 import { apiClient } from "../lib/api";
 import { Button } from "../components/ui/button";
@@ -18,6 +19,9 @@ export default function RootLayout() {
   const { locale, setCurrentLocale, availableLocales } = useLocale();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Subscribe to realtime events (SSE)
+  useRealtime();
 
   // Fetch current session
   const { data: session } = useQuery(sessionQueries.current());

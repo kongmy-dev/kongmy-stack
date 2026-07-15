@@ -8,12 +8,34 @@ import {
   type InvoiceCreateInput,
   type InvoiceUpdateInput,
   type InvoiceListItem,
+  type RealtimeEvent,
 } from "@kongmy-stack/contract";
 import { NotFoundError, ValidationError } from "@kongmy-stack/core";
 import { invoiceRepo, generateId, type TenantScope } from "@kongmy-stack/db";
 import type { AppBindings } from "../main.js";
 
 type Ctx = AppBindings["Variables"];
+
+/**
+ * Helper: publish a realtime event for invoice mutations
+ */
+function publishInvoiceEvent(
+  ctx: Ctx,
+  type: RealtimeEvent["type"],
+  resourceId: string,
+  data?: Record<string, unknown>
+) {
+  const event: RealtimeEvent = {
+    eventId: `evt_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+    type,
+    resourceId,
+    organizationId: ctx.tenant.orgId,
+    timestamp: new Date().toISOString(),
+    userId: ctx.user.id,
+    data,
+  };
+  ctx.publisher.publish(event);
+}
 
 function scopeOf(ctx: Ctx): TenantScope {
   return { org: ctx.tenant.orgId, branch: ctx.tenant.branchId };
@@ -119,6 +141,9 @@ export async function createInvoice(ctx: Ctx, input: InvoiceCreateInput) {
     auditId,
   });
 
+  // Publish realtime event for subscribers
+  publishInvoiceEvent(ctx, "invoice_created", invoice.inv_id);
+
   return {
     id: invoice.inv_id,
     number: invoice.invoice_number,
@@ -168,6 +193,9 @@ export async function updateInvoice(
     auditId,
   });
 
+  // Publish realtime event for subscribers
+  publishInvoiceEvent(ctx, "invoice_updated", id);
+
   return {
     id: updated.inv_id,
     number: updated.invoice_number,
@@ -211,5 +239,51 @@ export async function deleteInvoice(ctx: Ctx, id: string) {
     auditId,
   });
 
+  // Publish realtime event for subscribers
+  publishInvoiceEvent(ctx, "invoice_deleted", id);
+
   return { success: true };
+}
+
+export async function sendInvoice(ctx: Ctx, id: string) {
+  ctx.authz.assert("invoice:send");
+  const scope = scopeOf(ctx);
+
+  const invoice = await invoiceRepo.getById(ctx.db, scope, id);
+  if (!invoice) {
+    throw new NotFoundError(`Invoice ${id} not found`);
+  }
+
+  // Autonomy gate: draft the notification (suggest level by default)
+  // In a real app with autonomy=auto, this would actually send
+  const notificationDraft = await ctx.notifier.draft({
+    type: "email",
+    recipient: "customer@example.com", // Would come from invoice in real app
+    subject: `Invoice ${invoice.invoice_number}`,
+    body: `Please find attached your invoice ${invoice.invoice_number}.`,
+    metadata: {
+      invoiceId: id,
+      invoiceNumber: invoice.invoice_number,
+    },
+  });
+
+  const auditId = await writeAudit(ctx, "invoice:send", id);
+  ctx.logger.info("invoice_send_drafted", {
+    invoiceId: id,
+    draftId: notificationDraft.id,
+    requestId: ctx.requestId,
+    auditId,
+  });
+
+  // Publish realtime event for subscribers
+  publishInvoiceEvent(ctx, "invoice_sent", id, {
+    notificationDraftId: notificationDraft.id,
+  });
+
+  return {
+    id: invoice.inv_id,
+    status: invoice.status,
+    notificationDraftId: notificationDraft.id,
+    message: "Invoice send notification drafted",
+  };
 }
