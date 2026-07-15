@@ -44,11 +44,12 @@ function publishInvoiceEvent(
 
 async function writeAudit(ctx: Ctx, action: string, resourceId: string) {
   const auditId = generateId("audit");
-  const rawDb = (ctx.db as { rawDb?: { exec: (sql: string) => Promise<unknown> } }).rawDb;
+  const rawDb = (ctx.db as { rawDb?: { query: (sql: string, params: unknown[]) => Promise<unknown> } }).rawDb;
   if (!rawDb) throw new Error("audit write requires rawDb executor");
-  await rawDb.exec(
+  await (rawDb as any).query(
     `INSERT INTO audit_log (audit_id, organization_id, user_id, action, resource_type, resource_id, autonomy_level, created_at)
-     VALUES ('${auditId}', '${ctx.tenant.orgId}', '${ctx.user.id}', '${action}', 'invoice', '${resourceId}', 'auto', NOW())`
+     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+    [auditId, ctx.tenant.orgId, ctx.user.id, action, "invoice", resourceId, "auto"]
   );
   return auditId;
 }

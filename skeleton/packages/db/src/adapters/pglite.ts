@@ -41,13 +41,13 @@ export async function createPGliteAdapter(): Promise<DbInstance> {
  */
 export async function createPGliteAdapterWithFile(
   filePath: string
-): Promise<DbInstance> {
+): Promise<DbInstance & { rawDb: PGlite }> {
   const pg = new PGlite(`file://${filePath}`);
   const db = drizzle(pg, { schema });
 
   await seedSchema(pg);
 
-  return db;
+  return Object.assign(db, { rawDb: pg });
 }
 
 /**

@@ -28,6 +28,7 @@ import { registerRealtime } from "./routes/realtime.js";
 import { betterAuthProvider, headerMockProvider } from "./lib/session.js";
 import { inMemoryPublisher, type RealtimePublisher } from "./lib/realtime.js";
 import { inMemoryNotifier, type Notifier } from "./lib/notifier.js";
+import { cacheControlMiddleware } from "./lib/cache.js";
 import { loadEnv } from "./env.js";
 import { invoiceResource, invoiceLifecycle, sendInvoiceAction } from "@kongmy-stack/contract";
 import { extractTraceContext, type TraceContext } from "./lib/tracing.js";
@@ -268,6 +269,7 @@ export function createApp(deps: {
   // Middleware stack
   app.use(logger());
   app.use(cors());
+  app.use("*", cacheControlMiddleware());
 
   // Metrics middleware: record RED metrics per ADR-0010
   // Records before + after the request, capturing status and duration

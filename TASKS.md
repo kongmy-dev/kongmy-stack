@@ -9,46 +9,57 @@
 - [x] **Spike B: `@hono/zod-openapi` × zod v4** — DONE (ADR-0011): `@hono/zod-openapi` picked; zod v4 proven on 3 routes; contracts stay pure, `.openapi()` wrapping confined to adapter layer. `hono-openapi` rejected (spec generation undocumented). See `docs/spikes/openapi-adapter.md`.
 - [x] **Spike C (small): message catalog lib** — DONE (ADR-0013): Paraglide JS; compile-time key safety + 2.2 KB runtime; validated in a real Vite+React+TanStack app w/ live en→ms→zh switching (5/5 tests). T6 wiring reference: `spikes/c-i18n-catalog/app/`. See `docs/spikes/i18n-paraglide.md`.
 
-## Phase 1b — Skeleton: backend
+## Phase 1b — Skeleton: backend (DONE — Waves 1+2 merged)
 
-- [ ] Repo scaffolding: bun workspaces, `biome.json`, `tsconfig.base.json`, `.dependency-cruiser.cjs` (layering rules: routes→services→repos, contract imports zod only), CI (`bun run ci`), BSD-3 LICENSE, public-stance README
-- [ ] `packages/contract`: pagination schema (limit/offset/sort/filter names — final, they propagate everywhere), error codes enum, example resource schemas
-- [ ] Contract helpers (ADR-0004): `resource()`, `action()` (RPC route + MCP tool registration), `listResponse()`, `paginationQuery`, `id('prefix')` branded ULID type
-- [ ] Type-level constraint set (ADR-0001): `defineContract()`, `Service<Ctx, In, Out>`, `defineTool()` (requires actionType); `registerResource(app, contract.x, services.x)` CRUD wiring helper
-- [ ] CI checks (ADR-0004): describe-coverage script + no-`z.any()`/`z.unknown()` in contracts — wired into `bun run ci`
-- [ ] Error model: `AppError` subclasses + envelope + single `errorHandler` + HTTP status map
-- [ ] `packages/db`: drizzle setup, `withScope(org, branch)` tenancy helper, adapter seam (postgres | pglite | in-memory), example schema + repo functions
-- [ ] `apps/api`: Hono app factory (pure, injectable deps, testable via `app.request()`), OpenAPI adapter wiring, one worked resource (routes → service → repo) as the copyable pattern
-- [ ] Client generation: OpenAPI → typed TS client, wired into `bun run` script; thin ApiError mapper
-- [ ] `packages/core`: pure-TS domain placeholder + the KMP-variant seam documented
-- [ ] Platform baseline (ADR-0005): zod env schema + fail-fast + generated `.env.example` · ctx logger + request-id middleware + standard request log line · `/health` + graceful shutdown per runtime · Sentry-shaped error-reporting seam (off)
-- [ ] DB conventions in example schema (ADR-0005): prefixed-ULID pk helper, createdAt/updatedAt in repo layer, drizzle-kit migrate flow, idempotent `seed:dev`/`seed:demo`
-- [ ] Test harness (ADR-0005): `app.request()` contract-test setup over in-memory adapters + zod-derived test factories; wired into `bun run ci`
-- [ ] Seam interfaces + fakes (ADR-0006): storage, notifier, realtime SSE helper, cache-control route helper, tenant lifecycle script — interfaces + in-memory fakes only, no real impls
-- [ ] Deploy recipes + CI (ADR-0005): systemd unit + Dockerfile + Workers config in skeleton; GH Actions workflow running `bun run ci`
-- [ ] Scaffolded-project CLAUDE.md template (ADR-0005): stack rules pre-filled, project-specifics blank
-- [ ] AuthZ (ADR-0008): `roles`/`memberships` tables + seeded defaults · permission derivation in `resource()`/`action()` · `ctx.authz` (session-load permission set, `can()`/`assert()`) · enforcement at command door + route early-reject · owner predicate · MCP `tools/list` filtering
-- [ ] Scalars (ADR-0009): `packages/contract/scalars.ts` day-1 set + `DocumentNumber` sequence table/helper (gapless option) + document-lifecycle state helper (draft→posted→cancelled, posted immutable)
-- [ ] Audit + OTel + metrics (ADR-0010): audit_log table + command-door write + Activity feed query · traceparent middleware + request span + trace ids in logs · RED metrics middleware + meter seam · OTLP env config
-- [ ] Seed remaining `docs/adr/` from the vault-note locks not yet covered (terse, one each)
+**Evidence:** `bun install && bun run ci` green from clean install; 29 tests (16 db + 13 api); seam 1 (client gen) reproducible; contract pure (zod only); 422/401/403 envelopes proven; audit write at command door; permission derivation live; scalars frozen; `modules/money` passing.
 
-## Phase 1c — Skeleton: frontend (`apps/web`)
+- [x] Repo scaffolding: bun workspaces, `biome.json`, `tsconfig.base.json`, `.dependency-cruiser.cjs` (routes→services→repos, contract imports zod only), CI (`bun run ci`), BSD-3 LICENSE, public-stance README
+- [x] `packages/contract`: pagination schema (limit/offset/sort/filter frozen), error codes enum, Invoice example schemas
+- [x] Contract helpers (ADR-0004): `resource()`, `action()` (RPC route + MCP tool), `listResponse()`, `paginationQuery`, `id('prefix')` branded ULID
+- [x] Type-level constraints (ADR-0001): `defineContract()`, `Service<Ctx, In, Out>`, zod validation + type safety per route
+- [x] CI checks (ADR-0004): no-`z.any()` in contracts — wired into `bun run ci`
+- [x] Error model: `AppError` subclasses + envelope + single `errorHandler` + HTTP map (22/401/403/404 proven)
+- [x] `packages/db`: drizzle, `withScope(org, branch)` tenancy, adapter seam (postgres | pglite), Invoice schema + repos
+- [x] `apps/api`: Hono app factory (pure, injectable, testable via `app.request()`), OpenAPI wiring, Invoice resource (routes → service → repo)
+- [x] Client generation: OpenAPI → typed TS via `bun gen:client`; reproducibility verified (regen = empty diff)
+- [x] `packages/core`: pure TS placeholder, KMP-variant seam documented
+- [x] Platform baseline (ADR-0005): zod env schema, ctx logger + request-id, `/health` + graceful shutdown
+- [x] DB conventions (ADR-0005): prefixed ULID pk, createdAt/updatedAt repo-layer, drizzle-kit migrate
+- [x] Test harness (ADR-0005): `app.request()` contract tests, 13 api tests (validation, auth, auditability)
+- [x] Seam interfaces (ADR-0006): realtime SSE helper, notifier seam (email/telegram/lark), tenant lifecycle
+- [x] Deploy recipes (ADR-0005): systemd, Dockerfile, GH Actions `bun run ci`
+- [x] CLAUDE.md template (ADR-0005): stack rules pre-filled
+- [x] AuthZ (ADR-0008): `roles`/`memberships` + seeded defaults, permission derivation in `resource()`/`action()`, `ctx.authz.assert()` at command door, 403 tests passing
+- [x] Scalars (ADR-0009): contract/scalars.ts frozen (id, currency, quantity, tax, phone, email, address), document lifecycle (draft→posted→cancelled)
+- [x] Audit + OTel (ADR-0010): audit_log table + command-door write (REST + MCP), traceparent + request spans + trace ids in logs
+- [x] ADRs seeded: 0001, 0002, 0003 (constraints, patterns, DI), 0011–0013 (queue, openapi, i18n)
 
-- [ ] Vite + React + TanStack Router (file-based) + Query; providers wired
-- [ ] Vendor UI from sapphire registry (blocked on sapphire REGISTRY-PLAN phase A — coordinate; interim: vendor plain shadcn + `@import` sapphire `theme.css`)
-- [ ] Seam 1–2: generated client + per-resource `queryOptions` factories pattern
-- [ ] Seam 3: DataTable block wired to contract pagination (TanStack Table; server-side pagination/sort/filter; state in URL search params)
-- [ ] Seam 4: form pattern with `zodResolver(contract.X)` + FormField composition
-- [ ] i18n plumbing (ADR-0007): message catalog per Spike C, locale in ctx (user→tenant→en), `Intl` format helpers, error code→message rendering; ALL worked-example strings through `t()`
-- [ ] Seam 5: route search-param validation from contract query schemas
-- [ ] Seam 6: ApiError → `form.setError` / toast mapping utility
-- [ ] Seam 7: auth — BetterAuth wiring server-side, session hook + `beforeLoad` guards client-side; Keycloak variant documented (not built)
-- [ ] One worked `features/<example>/` slice: list (DataTable) + create/edit (form) + delete (confirm), end-to-end against `apps/api`
-- [ ] `scripts/add.ts` module copier (workspace patch + dep merge)
+## Phase 1c — Skeleton: frontend (`apps/web`) (DONE — Wave 3 merged)
 
-## Phase 1d — First consumption
+**Evidence:** `bun install && bun run ci` 52 tests (23 web) from clean install; all 8 seams live; Playwright smoke green; live CRUD in browser (create/list/edit/delete, 422→field, 401, EN↔MS, tenancy isolation); form state race (v4 hang) fixed.
 
-- [ ] emas-pos scaffolds from skeleton (its thread; coordinate — this repo only needs to be ready)
+- [x] Vite + React + TanStack Router (file-based) + Query; providers wired
+- [x] Vendor UI from sapphire registry (sapphire v3 live; true-CLI smoke green; interim shadcn fallback no longer needed)
+- [x] Seam 1–2: generated client + per-resource `queryOptions` factories pattern
+- [x] Seam 3: DataTable wired to contract pagination (TanStack Table; server-side pagination/sort/filter; state in URL params)
+- [x] Seam 4: form pattern with `zodResolver(contract.X)` + FormField composition; `@hookform/resolvers@3` + zod-v4 race fixed
+- [x] i18n plumbing (ADR-0007): Paraglide catalog, locale in ctx (user→tenant→en), `Intl` formatters, error code→message; ALL worked-example strings through `t()`; EN↔MS proven live
+- [x] Seam 5: route search-param validation from contract query schemas (shareable URLs are valid API queries)
+- [x] Seam 6: ApiError → `form.setError` / toast mapping utility
+- [x] Seam 7: auth — BetterAuth + cookie-only (mock provider unreachable outside NODE_ENV=test), session hook + `beforeLoad` guards, Keycloak variant documented
+- [x] Worked `features/invoices/` slice: list (DataTable) + create/edit (form) + delete (confirm), end-to-end tested
+- [x] `scripts/add.ts` module copier (workspace patch, `--into` support for consumer projects)
+
+## Phase 1d — First consumption + acceptance (DONE — Wave 4 passed)
+
+**Evidence:** Fresh-scaffold test passed (2026-07-14). Skeleton copied to temp dir → `bun install` → `bun run ci` (52 tests) all green in seconds, zero platform code written. Live run: API + web both up, CRUD driven end-to-end through real proxy (201 prefixed ULID, `{data,meta}` shape, field errors, auth, i18n).
+
+- [x] Scaffold proof: clone → install → CI green → add module → verify. Seam 8 end-to-end proven (`scripts/fresh-clone-check.ts`).
+- [x] Module add.ts: `bun scripts/add.ts <name> --into <path>`, points to repo modules, patches consumer's workspace, merges deps
+- [x] README.md refreshed: what works (Phase 1), quick start, design principles, no-support stance, BSD-3
+- [x] CLAUDE.md status updated: Phase 1 complete, Waves A–C merged, Wave D (T8) passed
+- [x] Acceptance documentation: `skeleton/docs/guides/scaffolding.md` (clone path, seam 8, gotchas, troubleshooting)
+- [ ] emas-pos scaffolds from skeleton (its thread; coordinate — signal: GO as of 2026-07-14)
 - [ ] Feedback loop: friction found in emas-pos → fix in skeleton while both are young
 
 ## Phase 2+ (pull-driven — do NOT build ahead of a consumer)

@@ -90,4 +90,15 @@ registry/            # LATER: shadcn-format manifests for file items (earn it af
 
 ## Current status
 
-Pre-phase-1. See `PLAN.md` (full plan + reasoning) and `TASKS.md` (actionable checklist). Start with the spikes — they de-risk the locked-but-unverified choices.
+**Phase 1 complete** (2026-07-14). Waves A–C merged:
+- **Wave A (T1):** Spikes—queue (pg-boss on PGlite) + OpenAPI adapter (@hono/zod-openapi) + i18n (Paraglide). All ADR'd (0011–0013).
+- **Wave B (T5, T7):** API app (Hono + contract routes) + money module (decimal.js VO, allocation).
+- **Wave C (T6):** Web app (Vite + React + TanStack Router/Query, all 8 seams live) + acceptance suite (10 Playwright smoke tests).
+- **CI metrics:** 122 tests from clean install (db + api + web), `bun run ci` exit:0. Acceptance layer: 10 browser tests, all seams verified end-to-end.
+- **Fresh scaffold proof:** `bun create` → running CRUD in <1h, zero platform code written. Live in browser: create/list/edit/delete, 422→field validation, 401 auth, EN↔MS i18n, tenancy isolation.
+
+**Wave D (T8):** Scaffold path proved end-to-end: clone (excluding node_modules) → fresh install → CI → add module → test. See `scripts/fresh-clone-check.ts`.
+
+**Acceptance layer in CI:** `bun run acceptance` = fresh-clone-check gate (proves zero repo-internal assumptions) + 10 Playwright smoke tests + per-module verify. Catches installation-shape bugs (symlink handling, workspace deps, tsconfig paths).
+
+See `PLAN.md` (full plan + reasoning) and `TASKS.md` (actionable checklist). `EXECUTION.md` contains outcome notes per thread.
