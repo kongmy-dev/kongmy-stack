@@ -173,9 +173,52 @@ export type InvoiceCreateInput = z.infer<typeof invoiceCreateInput>;
 
 /**
  * Invoice update input (draft state only, subset of fields)
+ * All fields optional (partial update); descriptions per-field
  */
-export const invoiceUpdateInput = invoiceCreateInput
-  .partial()
+export const invoiceUpdateInput = z
+  .object({
+    number: documentNumber
+      .optional()
+      .describe("Invoice number (e.g., INV-2026-00042)"),
+    customerId: customerId
+      .optional()
+      .describe("Customer ID"),
+    customerName: z.string()
+      .optional()
+      .describe("Customer display name"),
+    customerEmail: email
+      .optional()
+      .describe("Customer email for sending"),
+    issuedDate: dateOnly
+      .optional()
+      .describe("Invoice issue date"),
+    dueDate: dateOnly
+      .optional()
+      .describe("Payment due date"),
+    currency: currencyCode
+      .optional()
+      .describe("Invoice currency"),
+    lineItems: invoiceLineItem
+      .array()
+      .optional()
+      .describe("Array of line items"),
+    subtotal: money
+      .optional()
+      .describe("Sum of lineTotal across all items"),
+    totalTax: money
+      .optional()
+      .describe("Sum of lineTaxAmount"),
+    total: money
+      .optional()
+      .describe("Subtotal + tax"),
+    notes: z.string()
+      .max(1000)
+      .optional()
+      .describe("Additional notes"),
+    createdBy: z.string()
+      .optional()
+      .describe("Creator user ID or name"),
+  })
   .describe("Invoice update input (PUT /invoices/{id}, draft only)");
 
 export type InvoiceUpdateInput = z.infer<typeof invoiceUpdateInput>;

@@ -78,9 +78,24 @@ export function generateEnvExample(): string {
   const lines: string[] = [];
 
   for (const [key, schema] of Object.entries(envSchema.shape)) {
-    const zodSchema = schema as z.ZodType;
-    const description = (zodSchema as any).description;
-    const defaultValue = (zodSchema as any)._def?.defaultValue;
+    const zodSchema = schema as z.ZodType & { _def?: any; description?: string };
+    const description = zodSchema.description || zodSchema._def?.description;
+
+    // Extract default value from zod schema
+    let defaultValue: any = undefined;
+    if (zodSchema._def?.defaultValue !== undefined) {
+      // In zod v4+, default values are functions that need to be called
+      if (typeof zodSchema._def.defaultValue === "function") {
+        try {
+          defaultValue = zodSchema._def.defaultValue();
+        } catch {
+          // If calling throws, try using the function as-is
+          defaultValue = undefined;
+        }
+      } else {
+        defaultValue = zodSchema._def.defaultValue;
+      }
+    }
 
     if (description) {
       lines.push(`# ${description}`);

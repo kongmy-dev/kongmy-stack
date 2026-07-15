@@ -16,8 +16,13 @@ import type { AppBindings } from "../main.js";
 
 type Ctx = AppBindings["Variables"];
 
+function scopeOf(ctx: Ctx): TenantScope {
+  return { org: ctx.tenant.orgId, branch: ctx.tenant.branchId };
+}
+
 /**
- * Helper: publish a realtime event for invoice mutations
+ * Helper: publish realtime event for invoice mutations (custom actions only)
+ * CRUD mutations use registerResource event publishing.
  */
 function publishInvoiceEvent(
   ctx: Ctx,
@@ -35,10 +40,6 @@ function publishInvoiceEvent(
     data,
   };
   ctx.publisher.publish(event);
-}
-
-function scopeOf(ctx: Ctx): TenantScope {
-  return { org: ctx.tenant.orgId, branch: ctx.tenant.branchId };
 }
 
 async function writeAudit(ctx: Ctx, action: string, resourceId: string) {
@@ -134,15 +135,13 @@ export async function createInvoice(ctx: Ctx, input: InvoiceCreateInput) {
     status: "draft",
   });
 
-  const auditId = await writeAudit(ctx, "invoice:create", invoice.inv_id);
+  // Domain counter per ADR-0010: track created invoices
+  ctx.meter.inc("invoices_created_total");
+
   ctx.logger.info("invoice_created", {
     invoiceId: invoice.inv_id,
     requestId: ctx.requestId,
-    auditId,
   });
-
-  // Publish realtime event for subscribers
-  publishInvoiceEvent(ctx, "invoice_created", invoice.inv_id);
 
   return {
     id: invoice.inv_id,
@@ -186,15 +185,10 @@ export async function updateInvoice(
     customerName: input.customerName || existing.customer_name,
   });
 
-  const auditId = await writeAudit(ctx, "invoice:update", id);
   ctx.logger.info("invoice_updated", {
     invoiceId: id,
     requestId: ctx.requestId,
-    auditId,
   });
-
-  // Publish realtime event for subscribers
-  publishInvoiceEvent(ctx, "invoice_updated", id);
 
   return {
     id: updated.inv_id,
@@ -232,15 +226,10 @@ export async function deleteInvoice(ctx: Ctx, id: string) {
 
   await invoiceRepo.delete(ctx.db, scope, id);
 
-  const auditId = await writeAudit(ctx, "invoice:delete", id);
   ctx.logger.info("invoice_deleted", {
     invoiceId: id,
     requestId: ctx.requestId,
-    auditId,
   });
-
-  // Publish realtime event for subscribers
-  publishInvoiceEvent(ctx, "invoice_deleted", id);
 
   return { success: true };
 }

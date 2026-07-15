@@ -58,6 +58,7 @@ export function headerMockProvider(): SessionProvider {
       // Mock: admin role gets all permissions, others get none
       const permissions = new Set<string>();
       if (roles.includes("admin")) {
+        // Invoice permissions
         permissions.add("invoice:read");
         permissions.add("invoice:create");
         permissions.add("invoice:update");
@@ -65,6 +66,11 @@ export function headerMockProvider(): SessionProvider {
         permissions.add("invoice:post");
         permissions.add("invoice:cancel");
         permissions.add("invoice:send");
+        // Product permissions (for registerResource test)
+        permissions.add("product:read");
+        permissions.add("product:create");
+        permissions.add("product:update");
+        permissions.add("product:delete");
       }
 
       return {

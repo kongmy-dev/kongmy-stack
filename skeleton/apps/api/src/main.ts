@@ -30,6 +30,8 @@ import { inMemoryPublisher, type RealtimePublisher } from "./lib/realtime.js";
 import { inMemoryNotifier, type Notifier } from "./lib/notifier.js";
 import { loadEnv } from "./env.js";
 import { invoiceResource, invoiceLifecycle, sendInvoiceAction } from "@kongmy-stack/contract";
+import { extractTraceContext, type TraceContext } from "./lib/tracing.js";
+import { createMeter, recordRequest, exportMetricsText, type Meter } from "./lib/metrics.js";
 
 export const env = loadEnv();
 
@@ -51,7 +53,8 @@ export interface AppContext {
 
   // Request-level data (from middleware)
   requestId: string;
-  traceId: string;
+  trace: TraceContext; // W3C traceparent context per ADR-0010
+  traceId: string; // Shorthand for trace.traceId (backward compat)
   session: any; // Session from provider (or null if not authenticated)
   tenant: {
     orgId: string;
@@ -69,6 +72,7 @@ export interface AppContext {
     info(msg: string, data?: Record<string, unknown>): void;
     error(msg: string, data?: Record<string, unknown>): void;
   };
+  meter: Meter; // Domain counters per ADR-0010
 }
 
 export type AppBindings = {
@@ -86,7 +90,9 @@ export type AppBindings = {
  */
 function errorHandler(err: Error, ctx: Context<AppBindings>) {
   const requestId = (ctx.get?.("requestId") as string | undefined) || "unknown";
-  const traceId = (ctx.get?.("traceId") as string | undefined) || "unknown";
+  const trace = (ctx.get?.("trace") as TraceContext | undefined);
+  const traceId = trace?.traceId || "unknown";
+  const spanId = trace?.spanId || "unknown";
   const logger = ctx.get?.("logger");
 
   if (isAppError(err)) {
@@ -109,6 +115,7 @@ function errorHandler(err: Error, ctx: Context<AppBindings>) {
       method: ctx.req.method,
       requestId,
       traceId,
+      spanId,
     });
 
     return ctx.json(response, status as any);
@@ -131,6 +138,7 @@ function errorHandler(err: Error, ctx: Context<AppBindings>) {
     method: ctx.req.method,
     requestId,
     traceId,
+    spanId,
   });
 
   return ctx.json(response, 500 as any);
@@ -161,7 +169,10 @@ function createContextMiddleware(sessionProvider: any) {
     next: () => Promise<void>
   ) {
     const requestId = ctx.req.header("x-request-id") || `req_${Date.now()}`;
-    const traceId = ctx.req.header("traceparent")?.split("-")[1] || `trace_${Date.now()}`;
+
+    // Extract or generate W3C traceparent per ADR-0010
+    const incomingTraceparent = ctx.req.header("traceparent");
+    const trace = extractTraceContext(incomingTraceparent);
 
     // Try to get session from provider
     const session = await sessionProvider.getSession(ctx);
@@ -200,20 +211,24 @@ function createContextMiddleware(sessionProvider: any) {
 
     const mockLogger = {
       info: (msg: string, data?: Record<string, unknown>) => {
-        console.log(JSON.stringify({ level: "info", message: msg, requestId, traceId, ...data }));
+        console.log(JSON.stringify({ level: "info", message: msg, requestId, traceId: trace.traceId, spanId: trace.spanId, ...data }));
       },
       error: (msg: string, data?: Record<string, unknown>) => {
-        console.error(JSON.stringify({ level: "error", message: msg, requestId, traceId, ...data }));
+        console.error(JSON.stringify({ level: "error", message: msg, requestId, traceId: trace.traceId, spanId: trace.spanId, ...data }));
       },
     };
 
+    const meter = createMeter();
+
     ctx.set("requestId", requestId);
-    ctx.set("traceId", traceId);
+    ctx.set("trace", trace);
+    ctx.set("traceId", trace.traceId); // Backward compat
     ctx.set("session", session);
     ctx.set("tenant", mockTenant);
     ctx.set("user", mockUser);
     ctx.set("authz", mockAuthz);
     ctx.set("logger", mockLogger);
+    ctx.set("meter", meter);
 
     await next();
   };
@@ -254,6 +269,37 @@ export function createApp(deps: {
   app.use(logger());
   app.use(cors());
 
+  // Metrics middleware: record RED metrics per ADR-0010
+  // Records before + after the request, capturing status and duration
+  app.use("*", async (ctx, next) => {
+    const startTime = Date.now();
+    let status = 200;
+
+    try {
+      await next();
+      // After next() completes, status should be set by the response
+      status = ctx.res.status || 200;
+    } catch (err) {
+      // If an error was thrown, it will be handled by errorHandler
+      // We'll record the status here, but errorHandler might change it
+      status = ctx.res.status || 500;
+      throw err; // Re-throw for errorHandler to catch
+    } finally {
+      const durationMs = Date.now() - startTime;
+      // If status is still default, check ctx.res one more time
+      if (status === 200 && ctx.res.status) {
+        status = ctx.res.status;
+      }
+      recordRequest(ctx.req.method, ctx.req.path, status, durationMs);
+
+      // Set traceparent response header for downstream propagation
+      const trace = ctx.get?.("trace") as TraceContext | undefined;
+      if (trace) {
+        ctx.header("traceparent", trace.traceparent());
+      }
+    }
+  });
+
   // Determine session provider based on environment
   const sessionProvider = deps.sessionProvider || (
     deps.env.NODE_ENV === "test" ? headerMockProvider() : betterAuthProvider(deps.db)
@@ -286,6 +332,20 @@ export function createApp(deps: {
       checks: {
         db: "ok", // Real impl would ping the db
       },
+    });
+  });
+
+  // ========================================================================
+  // Metrics endpoint (Prometheus text format, no auth required)
+  // ========================================================================
+  app.get("/metrics", (ctx) => {
+    // Gate behind env flag or default to enabled for observability
+    const metricsEnabled = deps.env.OTEL_TRACE_ENABLED === "true" || true;
+    if (!metricsEnabled) {
+      return ctx.text("Metrics disabled", 404);
+    }
+    return ctx.text(exportMetricsText(), 200, {
+      "content-type": "text/plain; charset=utf-8",
     });
   });
 
