@@ -183,6 +183,14 @@ export const invoices_number = () => `Nombor Invois`
  * @returns {string}
  */
 /* @__NO_SIDE_EFFECTS__ */
+export const invoices_customer_info = () => `Maklumat Pelanggan`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
 export const invoices_customer_name = () => `Nama Pelanggan`
 
 

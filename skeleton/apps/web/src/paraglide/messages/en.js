@@ -183,6 +183,14 @@ export const invoices_number = () => `Invoice Number`
  * @returns {string}
  */
 /* @__NO_SIDE_EFFECTS__ */
+export const invoices_customer_info = () => `Customer Information`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
 export const invoices_customer_name = () => `Customer Name`
 
 

@@ -17,6 +17,7 @@
     "test": "bun test",
     "dev": "bun run --cwd apps/api dev",
     "gen:client": "bun scripts/gen-client.ts",
+    "gen:env": "bun scripts/gen-env-example.ts",
     "acceptance": "rm -rf node_modules/.vite apps/web/node_modules/.vite && bun acceptance/fresh-scaffold.ts && bunx playwright test -c acceptance && cd .. && bun scripts/verify-all.ts"
   },
   "devDependencies": {

@@ -28,6 +28,8 @@ describe("Invoice Repository", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00001",
       customerName: "Acme Corp",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 50000,
     });
 
@@ -46,6 +48,8 @@ describe("Invoice Repository", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00002",
       customerName: "Beta Inc",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 100000,
     });
 
@@ -68,6 +72,8 @@ describe("Invoice Repository", () => {
         branchId: testOrg.branch,
         invoiceNumber: `INV-2026-0000${i}`,
         customerName: `Customer ${i}`,
+        issuedDate: "2026-01-15",
+        dueDate: "2026-02-15",
         amount: i * 10000,
       });
     }
@@ -85,6 +91,8 @@ describe("Invoice Repository", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00010",
       customerName: "Old Name",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 50000,
     });
 
@@ -107,6 +115,8 @@ describe("Invoice Repository", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00011",
       customerName: "To Delete",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 30000,
     });
 
@@ -123,6 +133,8 @@ describe("Scope constraints", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00020",
       customerName: "Secret Invoice",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 999999,
     });
 
@@ -139,6 +151,8 @@ describe("Scope constraints", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00021",
       customerName: "Branch Secret",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 888888,
     });
 
@@ -160,6 +174,8 @@ describe("Scope constraints", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00030",
       customerName: "In Scope 1",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 10000,
     });
 
@@ -167,6 +183,8 @@ describe("Scope constraints", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00031",
       customerName: "In Scope 2",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 20000,
     });
 
@@ -175,6 +193,8 @@ describe("Scope constraints", () => {
       branchId: otherOrg.branch,
       invoiceNumber: "INV-2026-00032",
       customerName: "Out of Scope",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 30000,
     });
 
@@ -252,6 +272,8 @@ describe("Timestamps and IDs", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00100",
       customerName: "Timestamp Test",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 50000,
     });
 
@@ -265,6 +287,8 @@ describe("Timestamps and IDs", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00101",
       customerName: "Original",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 50000,
     });
 
@@ -284,6 +308,8 @@ describe("Timestamps and IDs", () => {
       branchId: testOrg.branch,
       invoiceNumber: "INV-2026-00102",
       customerName: "ULID Test",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
       amount: 50000,
     });
 

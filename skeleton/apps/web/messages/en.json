@@ -20,6 +20,7 @@
   "invoices_list_title": "Invoice List",
   "invoices_search_placeholder": "Search by number or customer name...",
   "invoices_number": "Invoice Number",
+  "invoices_customer_info": "Customer Information",
   "invoices_customer_name": "Customer Name",
   "invoices_customer_email": "Customer Email",
   "invoices_issued_date": "Issued Date",

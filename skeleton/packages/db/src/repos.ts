@@ -25,6 +25,8 @@ export interface Invoice {
   branch_id: string;
   invoice_number: string;
   customer_name: string;
+  issued_date: string;
+  due_date: string;
   amount: number;
   status: string;
   created_at: string;
@@ -35,6 +37,8 @@ export interface InvoiceInput {
   branchId: string;
   invoiceNumber: string;
   customerName: string;
+  issuedDate: string;
+  dueDate: string;
   amount: number;
   status?: string;
 }
@@ -73,6 +77,8 @@ export const invoiceRepo = {
       branch_id: input.branchId,
       invoice_number: input.invoiceNumber,
       customer_name: input.customerName,
+      issued_date: input.issuedDate,
+      due_date: input.dueDate,
       amount: input.amount,
       status: input.status || "draft",
       created_at: now,
@@ -82,15 +88,17 @@ export const invoiceRepo = {
     // Insert using raw SQL
     await executor.query(`
       INSERT INTO invoices
-        (inv_id, organization_id, branch_id, invoice_number, customer_name, amount, status, created_at, updated_at)
+        (inv_id, organization_id, branch_id, invoice_number, customer_name, issued_date, due_date, amount, status, created_at, updated_at)
       VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     `, [
       invoice.inv_id,
       invoice.organization_id,
       invoice.branch_id,
       invoice.invoice_number,
       invoice.customer_name,
+      invoice.issued_date,
+      invoice.due_date,
       invoice.amount,
       invoice.status,
       invoice.created_at,
@@ -182,6 +190,8 @@ export const invoiceRepo = {
       ...(input.branchId && { branch_id: input.branchId }),
       ...(input.invoiceNumber && { invoice_number: input.invoiceNumber }),
       ...(input.customerName && { customer_name: input.customerName }),
+      ...(input.issuedDate && { issued_date: input.issuedDate }),
+      ...(input.dueDate && { due_date: input.dueDate }),
       ...(typeof input.amount === "number" && { amount: input.amount }),
       ...(input.status && { status: input.status }),
       updated_at: now,
@@ -193,14 +203,18 @@ export const invoiceRepo = {
         branch_id = $1,
         invoice_number = $2,
         customer_name = $3,
-        amount = $4,
-        status = $5,
-        updated_at = $6
-      WHERE inv_id = $7
+        issued_date = $4,
+        due_date = $5,
+        amount = $6,
+        status = $7,
+        updated_at = $8
+      WHERE inv_id = $9
     `, [
       updated.branch_id,
       updated.invoice_number,
       updated.customer_name,
+      updated.issued_date,
+      updated.due_date,
       updated.amount,
       updated.status,
       updated.updated_at,

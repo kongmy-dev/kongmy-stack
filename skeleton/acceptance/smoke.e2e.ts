@@ -92,6 +92,14 @@ test.describe("smoke: Wave A auth + CRUD", () => {
     await loginAs(page, "admin@dev.local", "dev-admin-password");
     await page.goto("/invoices/create");
     await page.waitForLoadState("networkidle");
+
+    // Calculate expected dates (today and 30 days from now)
+    // Dates are formatted as toLocaleDateString() in the table
+    const today = new Date();
+    const expectedIssuedFormatted = today.toLocaleDateString();
+    const dueDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const expectedDueFormatted = dueDate.toLocaleDateString();
+
     await fillInvoiceForm(page, {
       customer: `Create ${runId}`,
       number: `INV-1${runId}`,
@@ -102,9 +110,12 @@ test.describe("smoke: Wave A auth + CRUD", () => {
     await page.locator('button[data-testid="submit-invoice-btn"]').first().click();
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/invoices");
-    // Verify the created invoice appears in the list
+    // Verify the created invoice appears in the list with correct dates
     const row = page.locator('tr[data-testid*="invoice-row"]').filter({ hasText: `Create ${runId}` }).first();
     await expect(row).toBeVisible({ timeout: 10000 });
+    // Assert the dates match submitted values, not hardcoded placeholders
+    await expect(row).toContainText(expectedIssuedFormatted);
+    await expect(row).toContainText(expectedDueFormatted);
   });
 
   test("edit invoice (admin)", async ({ page }) => {

@@ -144,6 +144,8 @@ async function initializeSchema(pg: PGlite): Promise<void> {
       branch_id TEXT NOT NULL,
       invoice_number TEXT NOT NULL,
       customer_name TEXT NOT NULL,
+      issued_date TEXT NOT NULL,
+      due_date TEXT NOT NULL,
       amount INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'draft',
       created_at TIMESTAMP WITH TIME ZONE NOT NULL,

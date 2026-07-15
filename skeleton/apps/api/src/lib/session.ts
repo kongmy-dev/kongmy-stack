@@ -103,7 +103,9 @@ export function betterAuthProvider(db: DbInstance): SessionProvider {
         const sessionToken = sessionMatch[1];
 
         // Look up session in database
+        // rawDb is optional on DbInstance; both drizzle and raw executor have query method
         const executor = (db as any).rawDb || db;
+        // SQL query results are untyped from PGlite/Postgres; rows need casting per schema
         const sessionResult = await (executor as any).query(
           `SELECT * FROM better_auth_session WHERE token = $1 AND expires_at > NOW() LIMIT 1`,
           [sessionToken]
@@ -113,9 +115,11 @@ export function betterAuthProvider(db: DbInstance): SessionProvider {
           return null;
         }
 
+        // Raw query row is untyped; contains user_id and session token fields
         const sessionRow = sessionResult.rows[0] as any;
 
         // Get the better-auth user
+        // SQL query results are untyped from PGlite/Postgres; rows need casting per schema
         const userResult = await (executor as any).query(
           `SELECT * FROM better_auth_user WHERE id = $1 LIMIT 1`,
           [sessionRow.user_id]
@@ -125,10 +129,12 @@ export function betterAuthProvider(db: DbInstance): SessionProvider {
           return null;
         }
 
+        // Raw query row is untyped; contains id and email fields from better_auth_user
         const betterAuthUser = userResult.rows[0] as any;
 
         // Find our authorization user record by email
         // This links the better-auth user to our org/roles
+        // SQL query results are untyped from PGlite/Postgres; rows need casting per schema
         const authUserResult = await (executor as any).query(
           `SELECT * FROM users WHERE email = $1 LIMIT 1`,
           [betterAuthUser.email]
@@ -139,9 +145,11 @@ export function betterAuthProvider(db: DbInstance): SessionProvider {
           return null;
         }
 
+        // Raw query row is untyped; contains user_id and organization_id from users table
         const authUser = authUserResult.rows[0] as any;
 
         // Load memberships for this user in their org
+        // SQL query results are untyped from PGlite/Postgres; rows need casting per schema
         const membershipResult = await (executor as any).query(
           `SELECT membership_id, role_id FROM memberships
            WHERE user_id = $1 AND organization_id = $2`,
@@ -153,12 +161,14 @@ export function betterAuthProvider(db: DbInstance): SessionProvider {
         // Load all roles and collect permissions
         const permissions = new Set<string>();
         for (const membership of memberships) {
+          // SQL query results are untyped from PGlite/Postgres; rows need casting per schema
           const roleResult = await (executor as any).query(
             `SELECT permission_ids FROM roles WHERE role_id = $1`,
             [membership.role_id]
           );
 
           if (roleResult.rows && roleResult.rows.length > 0) {
+            // Raw query row is untyped; permission_ids is JSONB and needs casting
             const role = roleResult.rows[0] as any;
             const permissionIds = role.permission_ids || [];
             permissionIds.forEach((perm: string) => permissions.add(perm));
@@ -166,6 +176,7 @@ export function betterAuthProvider(db: DbInstance): SessionProvider {
         }
 
         // Extract role names from memberships
+        // SQL query results are untyped from PGlite/Postgres; rows need casting per schema
         const roleResult = await (executor as any).query(
           `SELECT DISTINCT r.name FROM roles r
            JOIN memberships m ON r.role_id = m.role_id

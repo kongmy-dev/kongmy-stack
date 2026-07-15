@@ -162,7 +162,7 @@ export default function CreateInvoicePage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" data-testid="invoice-form">
         {/* Customer Info */}
         <fieldset className="space-y-4 rounded border border-gray-200 p-4">
-          <legend className="text-lg font-semibold">{m.common_search()}</legend>
+          <legend className="text-lg font-semibold">{m.invoices_customer_info()}</legend>
 
           <div>
             <Label className="block text-sm font-medium text-gray-900">

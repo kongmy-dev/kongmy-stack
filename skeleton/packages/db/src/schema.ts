@@ -160,6 +160,7 @@ export const documentSequences = pgTable("document_sequences", {
  * Example resource: invoices.
  * Exercises prefixed ULID pk, createdAt/updatedAt, scope constraint.
  * Per ADR-0005: no soft delete by default.
+ * Per ADR-0009: issuedDate and dueDate as DateOnly scalars (stored as text YYYY-MM-DD).
  */
 export const invoices = pgTable("invoices", {
   id: prefixedId("inv"),
@@ -167,6 +168,8 @@ export const invoices = pgTable("invoices", {
   branchId: text("branch_id").notNull(),
   invoiceNumber: text("invoice_number").notNull(),
   customerName: text("customer_name").notNull(),
+  issuedDate: text("issued_date").notNull(), // Invoice issue date (YYYY-MM-DD)
+  dueDate: text("due_date").notNull(), // Payment due date (YYYY-MM-DD)
   amount: integer("amount").notNull(), // in minor units (cents)
   status: text("status").notNull().default("draft"), // draft | posted | cancelled
   createdAt: createdAt(),
