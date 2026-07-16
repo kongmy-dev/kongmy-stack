@@ -6,7 +6,7 @@ Personal full-stack template system by [KONGMY Digital Solutions](https://kongmy
 
 ## What works today
 
-**Phase 1 complete** — skeleton + 2 core modules, all seams live (122 tests + 10 Playwright smoke).
+**Phase 1 complete** — skeleton + 4 core modules, all seams live (122 skeleton tests + 62 module tests + 10 Playwright smoke).
 
 - **Backend:** [Hono](https://hono.dev) + contract-first [zod](https://zod.dev) single source of truth → routes, OpenAPI, and generated clients from one definition. Postgres at every altitude ([PGlite](https://pglite.dev) embedded for dev/test → [Neon](https://neon.tech)) via [Drizzle](https://orm.drizzle.team). Runtime-neutral core (Bun + Node + Workers).
 - **Frontend:** Vite + React + [TanStack Router/Query](https://tanstack.com). Forms and URL params validated by the same contract schemas the API enforces. UI primitives from [sapphire-ui](https://design.kongmy.dev) registry.
@@ -17,7 +17,9 @@ Personal full-stack template system by [KONGMY Digital Solutions](https://kongmy
 - **Vendored modules** (copy what you need):
   - **`money`** — Money value objects with decimal.js internals, allocation, multi-currency support
   - **`queue`** — Async job queues: pg-boss on Postgres/PGlite, CF Queues on Workers
-  - **Planned:** events/outbox, agentic (MCP tool server + autonomy gating), connectors
+  - **`events`** — Event envelope + HLC timestamps + transactional outbox (crash-recovery proven) + in-proc bus
+  - **`agentic`** — `registry.execute()` audited command door, zod-derived MCP tool schemas, autonomy gate (suggest/assist/auto)
+  - **Planned:** connectors, country-my (Malaysia compliance)
 
 ## Quick Start
 

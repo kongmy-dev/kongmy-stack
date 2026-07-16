@@ -1,0 +1,30 @@
+{
+  "name": "events-module",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Event envelope (zod), HLC timestamps, transactional outbox with exactly-once delivery, and in-proc typed bus",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test --timeout 120000",
+    "verify": "bun run test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.0.0",
+    "uuidv7": "^1.0.4"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "@types/bun": "latest",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3"
+  }
+}

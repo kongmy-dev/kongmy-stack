@@ -99,6 +99,8 @@ registry/            # LATER: shadcn-format manifests for file items (earn it af
 
 **Wave D (T8):** Scaffold path proved end-to-end: clone (excluding node_modules) → fresh install → CI → add module → test. See `scripts/fresh-clone-check.ts`.
 
+**Wave E (2026-07-16):** `modules/events` (envelope + HLC + upcast + transactional outbox + in-proc bus; per-event marking with poison isolation; crash recovery proven by cross-process SIGKILL on file-backed PGlite; 47 tests) + `modules/agentic` (`registry.execute()` audited door, zod→JSON-Schema tool derivation, autonomy gate suggest/assist/auto, framework-free MCP JSON-RPC transport with `tools/list` filtered by `can()` and denials audited; 15 tests). Both extracted from emas-pos/nexus references, de-domained (IP grep gated). 4 modules total; `verify-all.ts` auto-discovers them in acceptance. `modules/ledger` decided OUT of template until a second consumer (lives in emas-pos).
+
 **Acceptance layer in CI:** `bun run acceptance` = fresh-clone-check gate (proves zero repo-internal assumptions) + 10 Playwright smoke tests + per-module verify. Catches installation-shape bugs (symlink handling, workspace deps, tsconfig paths).
 
 See `PLAN.md` (full plan + reasoning) and `TASKS.md` (actionable checklist). `EXECUTION.md` contains outcome notes per thread.
