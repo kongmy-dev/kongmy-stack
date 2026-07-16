@@ -128,7 +128,7 @@ VALUES
   ('audit_01ABC...', 'org_xyz', 'user_bob', 'invoice:create', 'invoice', 'inv_01XYZ...', 'auto', NOW());
 ```
 
-Accessible for compliance + audit trails. Shown in activity feeds via `entityRef` (vibe pattern).
+Accessible for compliance + audit trails. Shown in activity feeds via `entityRef`.
 
 ## Realtime Events
 

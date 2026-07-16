@@ -12,7 +12,7 @@ Three distinct records, never conflated:
 - Append-only `audit_log` table: `{ id, tenantId, actorId, action, entityRef (type + prefixed-ULID), requestId, at, summary, diff? }`.
 - **Written at the command door** — one write point, automatically covering REST, MCP tools, and agent-initiated commands (actor = user or agent principal; autonomy level recorded for agent actions).
 - Reads (GETs) are not audited by default; sensitive-read auditing is per-resource opt-in.
-- UI convention: entity detail pages show an Activity section fed by `entityRef` (vibe pattern); deep-links both ways.
+- UI convention: entity detail pages show an Activity section fed by `entityRef`; deep-links both ways.
 - `diff` = before/after field diff for updates, computed in the command helper, excluded for large payloads. No custom audit lib — this is ~100 lines over the existing envelope.
 
 ## Tracing — OTel-compliant
@@ -37,4 +37,4 @@ Three distinct records, never conflated:
 | Operational counters | `ctx.meter` | lossy OK, trend-only | same |
 | **Business metrics** | **SQL over domain tables + events/audit** | exact, auditable, reproducible | admin app via contract endpoints (Stat/DataTable blocks), reports |
 
-Rule: revenue, AR aging, conversion, utilization — anything a human makes a decision on — is **derived by query from domain data** (vibe pattern: P&L/balance-sheet/aging are queries over GL), never accumulated in OTel counters (lossy + unauditable). Where a business metric isn't naturally in tables, the **events module provides the projection path** (facts → projection table → query). Report endpoints are ordinary contracts, so business metrics are automatically typed, permissioned (ADR-0008), and MCP-exposed — an agent can ask for the numbers through the same door.
+Rule: revenue, AR aging, conversion, utilization — anything a human makes a decision on — is **derived by query from domain data** (e.g. P&L/balance-sheet/aging are queries over GL), never accumulated in OTel counters (lossy + unauditable). Where a business metric isn't naturally in tables, the **events module provides the projection path** (facts → projection table → query). Report endpoints are ordinary contracts, so business metrics are automatically typed, permissioned (ADR-0008), and MCP-exposed — an agent can ask for the numbers through the same door.
