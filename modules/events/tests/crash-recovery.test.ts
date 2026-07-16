@@ -1,3 +1,5 @@
+// Run via `bun run test` — raw `bun test` times out (suite needs --timeout 120000)
+
 import { test, expect } from 'bun:test'
 import { PGlite } from '@electric-sql/pglite'
 import { appendEvent, drainOutbox, EventOutboxDDL, EventOutboxIndexDDL, type RawExecutor } from '../src/outbox'

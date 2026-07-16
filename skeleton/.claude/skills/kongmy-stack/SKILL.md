@@ -105,7 +105,7 @@ See `docs/guides/seams.md`.
 
 `bun run ci` = typecheck + boundary-check + contract compliance check + skill reference check + tests. Individual gates:
 
-- `bun run type-check` — tsc across all packages/apps
+- `bun run typecheck` — tsc across all packages/apps
 - `bun run boundary-check` — dependency-cruiser enforces allowed imports from ADR-0001
 - `bun scripts/check-contracts.ts` — every field `.describe()`'d, no `z.any()`
 - `bun scripts/check-skill-refs.ts` — all paths in this skill exist

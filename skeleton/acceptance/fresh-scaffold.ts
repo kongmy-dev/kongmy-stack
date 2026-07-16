@@ -4,7 +4,7 @@
  *
  * Catches:
  * - Missing dependencies (bun install fails)
- * - TypeScript errors (type-check fails)
+ * - TypeScript errors (typecheck fails)
  * - Boundary violations (dep-cruiser fails)
  * - Test failures (bun test fails)
  * - Client generation failures (gen:client fails)
@@ -74,10 +74,10 @@ async function main() {
       args: ["install"],
     },
     {
-      name: "type-check",
+      name: "typecheck",
       cwd: workDir,
       command: "bun",
-      args: ["run", "type-check"],
+      args: ["run", "typecheck"],
     },
     {
       name: "boundary-check",

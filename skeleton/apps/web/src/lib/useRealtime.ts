@@ -6,25 +6,42 @@
  * Event type drives cache invalidation (e.g., invoice_created → invalidate invoices list query).
  *
  * Usage:
- *   useRealtime(); // Mount once per app (in root layout or auth guard)
+ *   useRealtime(!!session); // Mount once per app (in root layout or auth guard)
+ *                            // Pass true only when authenticated
+ *
+ * Parameters:
+ *   enabled: boolean (default true) — when false, EventSource is not opened and no reconnection occurs.
+ *            Pass session presence to gate connection only to authenticated users.
  *
  * Lifecycle:
- * - Open EventSource on component mount
+ * - When enabled=true, open EventSource on component mount
  * - Subscribe to events: on receipt, invalidate relevant queries
  * - Close on unmount
  * - Auto-reconnect on network error (simple exponential backoff)
+ * - When enabled=false, no connection is attempted
  */
 
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { RealtimeEvent } from "@kongmy-stack/contract";
 
-export function useRealtime() {
+export function useRealtime(enabled: boolean = true) {
   const queryClient = useQueryClient();
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectAttemptRef = useRef(0);
 
   useEffect(() => {
+    // If realtime is disabled, don't connect
+    if (!enabled) {
+      return () => {
+        // Cleanup: close any open connection (shouldn't happen, but be safe)
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
+      };
+    }
+
     const connect = () => {
       try {
         // Open SSE connection to /api/realtime
@@ -64,7 +81,7 @@ export function useRealtime() {
       }
     };
 
-    // Connect on mount
+    // Connect on mount (only if enabled)
     connect();
 
     // Cleanup on unmount
@@ -74,7 +91,7 @@ export function useRealtime() {
         eventSourceRef.current = null;
       }
     };
-  }, [queryClient]);
+  }, [queryClient, enabled]);
 }
 
 /**

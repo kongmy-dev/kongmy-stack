@@ -39,11 +39,12 @@ export default defineConfig({
       },
     },
     {
-      command: `bun run --cwd apps/web dev -- --port ${WEB_PORT} --strictPort`,
+      command: `bun run --cwd apps/web dev`,
       cwd: skeletonRoot,
       url: `http://localhost:${WEB_PORT}`,
       reuseExistingServer: !process.env.CI,
       env: {
+        WEB_PORT,
         VITE_API_PORT: API_PORT,
       },
     },

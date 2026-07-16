@@ -135,6 +135,30 @@ export const common_next = () => `Seterusnya`
  * @returns {string}
  */
 /* @__NO_SIDE_EFFECTS__ */
+export const common_select_language = () => `Pilih bahasa`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export const common_email = () => `E-mel`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export const common_password = () => `Kata laluan`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
 export const invoices_title = () => `Invois`
 
 
@@ -456,3 +480,27 @@ export const errors_conflict = () => `Konflik`
  */
 /* @__NO_SIDE_EFFECTS__ */
 export const errors_business_rule_violation = () => `Pelanggaran peraturan bisnes`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export const invoices_customer_name_placeholder = () => `Syarikat Acme`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export const invoices_number_placeholder = () => `INV-001`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export const invoices_notes_placeholder = () => `Nota tambahan...`

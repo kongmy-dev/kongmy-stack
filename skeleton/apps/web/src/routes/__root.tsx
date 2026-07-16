@@ -20,11 +20,11 @@ export default function RootLayout() {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Subscribe to realtime events (SSE)
-  useRealtime();
-
   // Fetch current session
   const { data: session } = useQuery(sessionQueries.current());
+
+  // Subscribe to realtime events (SSE) only when authenticated
+  useRealtime(!!session);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -68,7 +68,7 @@ export default function RootLayout() {
               value={locale}
               onChange={(e) => setCurrentLocale(e.target.value)}
               className="rounded border border-gray-300 px-2 py-1 text-sm"
-              aria-label="Select language"
+              aria-label={m.common_select_language()}
               data-testid="locale-toggle"
             >
               {availableLocales.map((loc) => (

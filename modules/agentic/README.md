@@ -190,6 +190,50 @@ interface AuditEntry {
 
 Your `auditWrite` hook is responsible for persistence (database, event log, etc.).
 
+## Composing with an events outbox (open question)
+
+Some systems pair this module with transactional event emission — handlers emit domain events that are appended to an outbox inside the same database transaction, ensuring exactly-once delivery.
+
+**Real tension:** `registry.execute()` does authz + audit + dispatch, but does not currently prescribe how to thread domain events through the handler context.
+
+**Current workaround (until a second consumer proves a pattern):**
+1. Pass a `db` reference and event bus/outbox interface through the handler context.
+2. In your handler, emit events to the outbox within the same transaction as business logic.
+3. Separately, the outbox worker publishes confirmed events to the event bus (handled outside this module).
+
+**Example:**
+
+```typescript
+// Define handler with db access
+const sendInvoice = defineTool({
+  name: 'invoice_send',
+  // ...
+  handler: async (input, ctx) => {
+    // ctx now contains db, outbox, bus — thread as needed
+    const db = (ctx as any).db // Type this properly in your app
+    
+    await db.transaction(async (tx) => {
+      // Business logic: send email
+      await sendEmailViaSMTP(input.email, input.invoiceId)
+      
+      // Emit domain event within same transaction
+      await tx.insert(outbox).values({
+        aggregateId: input.invoiceId,
+        eventType: 'invoice.sent',
+        payload: { to: input.email, sentAt: new Date().toISOString() },
+      })
+    })
+    
+    return { ok: true, summary: '...' }
+  },
+})
+```
+
+**This is not yet a documented pattern.** Once a second consumer proves an ergonomic approach, a recommended pattern will be documented. Candidates:
+- Pass db/outbox through a `RegistryConfig` seam (similar to `authz`, `auditWrite`).
+- Use a higher-order handler wrapper that opens a transaction automatically.
+- Document the transaction-per-handler rule explicitly.
+
 ## ToolResult Format
 
 All tool handlers return a **uniform result structure**:

@@ -172,7 +172,7 @@ export default function CreateInvoicePage() {
               type="text"
               {...register("customerName")}
               className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-              placeholder="Acme Corp"
+              placeholder={m.invoices_customer_name_placeholder()}
               data-testid="customer-name-input"
             />
             {errors.customerName && (
@@ -208,7 +208,7 @@ export default function CreateInvoicePage() {
               type="text"
               {...register("number")}
               className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-              placeholder="INV-001"
+              placeholder={m.invoices_number_placeholder()}
               data-testid="invoice-number-input"
             />
             {errors.number && (
@@ -346,7 +346,7 @@ export default function CreateInvoicePage() {
             {...register("notes")}
             rows={3}
             className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-            placeholder="Additional notes..."
+            placeholder={m.invoices_notes_placeholder()}
           />
         </div>
 

@@ -153,17 +153,27 @@ Cloudflare Queues have different semantics:
 
 Implementation will adapt the interface; existing handlers remain compatible.
 
+## Running tests
+
+Tests must be run via the npm script:
+
+```bash
+bun run test
+```
+
+**Do not run** `bun test` directly — the suite requires `--timeout 240000` and will time out at the default 5-second limit.
+
 ## Testing
 
 ```bash
 # Run conformance tests (all lanes)
-bun test
+bun run test
 
 # Run with PostgreSQL lane enabled
-QUEUE_PG_DSN="postgres://..." bun test
+QUEUE_PG_DSN="postgres://..." bun run test
 
 # Skip PostgreSQL lane (default if QUEUE_PG_DSN not set)
-bun test
+bun run test
 ```
 
 **Conformance suite** (6 assertions × 3 lanes, per ADR-0012):

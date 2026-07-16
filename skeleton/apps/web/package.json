@@ -7,7 +7,7 @@
     "dev": "paraglide-js compile --project ./project.inlang && vite",
     "build": "paraglide-js compile --project ./project.inlang && vite build",
     "preview": "vite preview",
-    "type-check": "paraglide-js compile --project ./project.inlang && tsc --noEmit",
+    "typecheck": "paraglide-js compile --project ./project.inlang && tsc --noEmit",
     "test": "bun test"
   },
   "dependencies": {

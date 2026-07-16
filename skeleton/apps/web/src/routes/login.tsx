@@ -8,6 +8,7 @@ import { useRouter } from "@tanstack/react-router";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { FormField } from "../components/ui/form-field";
+import * as m from "../paraglide/messages.js";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <FormField label="Email">
+          <FormField label={m.common_email()}>
             <Input
               type="email"
               value={email}
@@ -75,7 +76,7 @@ export default function LoginPage() {
             />
           </FormField>
 
-          <FormField label="Password">
+          <FormField label={m.common_password()}>
             <Input
               type="password"
               value={password}

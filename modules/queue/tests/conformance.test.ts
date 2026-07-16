@@ -1,3 +1,5 @@
+// Run via `bun run test` — raw `bun test` times out (suite needs --timeout 240000)
+
 /**
  * Conformance Test Suite for Queue Module
  *

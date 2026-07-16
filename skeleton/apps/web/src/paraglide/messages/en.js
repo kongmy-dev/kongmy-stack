@@ -135,6 +135,30 @@ export const common_next = () => `Next`
  * @returns {string}
  */
 /* @__NO_SIDE_EFFECTS__ */
+export const common_select_language = () => `Select language`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export const common_email = () => `Email`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export const common_password = () => `Password`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
 export const invoices_title = () => `Invoices`
 
 
@@ -456,3 +480,27 @@ export const errors_conflict = () => `Conflict`
  */
 /* @__NO_SIDE_EFFECTS__ */
 export const errors_business_rule_violation = () => `Business rule violation`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export const invoices_customer_name_placeholder = () => `Acme Corp`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export const invoices_number_placeholder = () => `INV-001`
+
+
+/**
+ * 
+ * @returns {string}
+ */
+/* @__NO_SIDE_EFFECTS__ */
+export const invoices_notes_placeholder = () => `Additional notes...`

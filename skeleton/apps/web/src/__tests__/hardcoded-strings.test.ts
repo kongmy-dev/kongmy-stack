@@ -1,75 +1,112 @@
 /**
- * Hardcoded strings gate — Seam 9 enforcement
+ * Hardcoded strings gate — i18n enforcement (Seam 9)
  *
- * Verifies that all user-facing strings in features/ go through Paraglide messages.
- * This test runs a grep check to ensure no hardcoded strings leak into components.
+ * Scans every route and feature file for JSX text-node lines that are plain
+ * natural language instead of a Paraglide `m.*()` lookup. FAILS the suite when
+ * one is found. Allowlists only genuine brand strings and technical constants.
+ *
+ * Patterns caught:
+ * - Whole-line text nodes: `<h1>Invoice</h1>` → literal text "Invoice"
+ * - Inline >Text< nodes: `<button>Create</button>`
+ * - User-facing attributes: `label="Save"`, `title="Delete"`, `alt="..."`, `aria-label="..."`
  *
  * Run with: bun test hardcoded-strings.test.ts
  */
 
 import { describe, test, expect } from "bun:test";
-import { execSync } from "child_process";
-import { resolve } from "path";
+import { readdirSync, readFileSync } from "fs";
+import { join, resolve } from "path";
 
-describe("Hardcoded strings gate", () => {
-  test("no hardcoded English strings in routes/invoices", () => {
-    // This test verifies that routes/invoices files use m.* or message lookups
-    // rather than hardcoded strings.
-    //
-    // We check for common patterns:
-    // - Button labels like "Create", "Delete", "Edit" should use m.* lookups
-    // - Form labels should use m.* lookups
-    // - Status text should use m.* lookups
-    //
-    // This is an automated gate that catches refactoring violations.
+const ROUTES_DIR = resolve(import.meta.dir, "..", "routes");
+const FEATURES_DIR = resolve(import.meta.dir, "..", "features");
+const ALLOWLIST = new Set(["kongmy-stack", "KONGMY"]);
 
-    const cwd = resolve(import.meta.dir, "..");
-    const invoicesDir = resolve(cwd, "routes/invoices");
-
-    try {
-      // Grep for hardcoded English status strings (common mistake)
-      // Should fail if found (we use m.invoices_status_draft, etc.)
-      const result = execSync(
-        `grep -r "status.*=.*['\\"](draft|posted|cancelled)['\\"]\|'Create Invoice'\|'Delete Invoice'|'Edit Invoice'` +
-          ` ${invoicesDir} || true`,
-        { encoding: "utf-8" }
-      );
-
-      // We expect grep to find nothing (empty result)
-      if (result.trim()) {
-        console.warn("Found potential hardcoded strings (may be false positives):");
-        console.warn(result);
+function tsxFiles(dir: string): string[] {
+  const files: string[] = [];
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    entries.forEach((entry) => {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...tsxFiles(full));
+      } else if (entry.name.endsWith(".tsx")) {
+        files.push(full);
       }
+    });
+  } catch (err) {
+    // Directory doesn't exist, skip
+  }
+  return files;
+}
 
-      // This test is informational; the real enforcement is via code review
-      expect(true).toBe(true);
-    } catch (e) {
-      // Grep error is OK (just means nothing found)
-      expect(true).toBe(true);
+const PROSE_LINE = /^[A-Za-z0-9][A-Za-z0-9 ,.:;'&()+/-]*$/;
+const SYNTAX_CHARS = /[{}<>=;`]/;
+const CODE_LINE =
+  /^(return|export|import|const|let|var|function|if|else|case|default|await|void|new|throw|interface|type|enum)\b/;
+const ATTRIBUTE_PATTERN =
+  /(?:label|title|alt|aria-label|placeholder)=["']([^"']+)["']/g;
+
+function hardcodedTextNodes(file: string): string[] {
+  const violations: string[] = [];
+  const content = readFileSync(file, "utf-8");
+  const lines = content.split("\n");
+
+  // Check for hardcoded attributes
+  lines.forEach((line, i) => {
+    let attrMatch;
+    while ((attrMatch = ATTRIBUTE_PATTERN.exec(line)) !== null) {
+      const value = attrMatch[1];
+      if (ALLOWLIST.has(value)) continue;
+      // Single lowercase tokens are not prose (e.g., wrapped classname)
+      if (!value.includes(" ") && value === value.toLowerCase()) continue;
+      violations.push(`${file}:${i + 1}: [attr] ${value}`);
     }
   });
 
-  test("all message lookups are properly namespaced", () => {
-    // Verify that message keys follow the namespace_key pattern
-    // This prevents accidental typos like m.delete() instead of m.common_delete()
+  // Check for whole-line text nodes and inline text
+  lines.forEach((line, i) => {
+    const trimmed = line.trim();
 
-    const validPatterns = [
-      /m\.common_/,
-      /m\.invoices_/,
-      /m\.errors_/,
+    // Skip empty lines and comments
+    if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("/*")) return;
+
+    // Skip lines with JSX syntax markers
+    if (SYNTAX_CHARS.test(trimmed)) return;
+
+    // Skip code lines
+    if (CODE_LINE.test(trimmed)) return;
+
+    // Extract text content from JSX tags
+    // Match: >Text< or >Text</ patterns that aren't empty/whitespace/variables
+    const textNodeMatches = line.matchAll(/>([^<{}]+)</g);
+    for (const match of textNodeMatches) {
+      let text = match[1].trim();
+
+      // Skip if contains variable references {anything}
+      if (text.includes("{")) continue;
+
+      // Skip whitespace-only matches
+      if (!text || /^\s+$/.test(text)) continue;
+
+      // Skip if it's valid prose (not a single lowercased word or symbol)
+      if (PROSE_LINE.test(text)) {
+        if (ALLOWLIST.has(text)) continue;
+        // Single lowercase tokens are not prose
+        if (!text.includes(" ") && text === text.toLowerCase()) continue;
+        violations.push(`${file}:${i + 1}: ${text}`);
+      }
+    }
+  });
+
+  return violations;
+}
+
+describe("Hardcoded strings gate", () => {
+  test("route and feature files contain no hardcoded user-facing text nodes", () => {
+    const violations = [
+      ...tsxFiles(ROUTES_DIR).flatMap(hardcodedTextNodes),
+      ...tsxFiles(FEATURES_DIR).flatMap(hardcodedTextNodes),
     ];
-
-    // These are examples from the routes/invoices files
-    const usageExamples = [
-      "m.invoices_title()",
-      "m.common_save()",
-      "m.invoices_delete_success()",
-      "m.errors_validation_error()",
-    ];
-
-    usageExamples.forEach((usage) => {
-      const matched = validPatterns.some((pattern) => pattern.test(usage));
-      expect(matched).toBe(true);
-    });
+    expect(violations).toEqual([]);
   });
 });

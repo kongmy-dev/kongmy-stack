@@ -154,6 +154,26 @@ cp .env.example .env.local
 
 The API reads from `.env.local` at startup. Web app environment variables are bundled at build time.
 
+### Development Server Ports
+
+When running dev servers locally or in CI, you can pin ports with environment variables:
+
+- `WEB_PORT` (default 5173) — Vite web dev server port. Pass as env to fix the port:
+  ```bash
+  WEB_PORT=5174 bun run --cwd apps/web dev
+  ```
+  When set, the server fails if the port is unavailable (strictPort mode). Omit `WEB_PORT` to allow fallback to the next available port.
+
+- `VITE_API_PORT` (default 3000) — API proxy target. Used in `vite.config.ts` to configure the `/api` proxy:
+  ```bash
+  VITE_API_PORT=3100 bun run --cwd apps/web dev
+  ```
+
+- `API_PORT` (default 3100) — API server listen port:
+  ```bash
+  PORT=3100 bun run --cwd apps/api dev
+  ```
+
 ## Troubleshooting
 
 ### `bun run ci` Fails
@@ -161,10 +181,22 @@ The API reads from `.env.local` at startup. Web app environment variables are bu
 Usually a typecheck or boundary issue. Run individually:
 
 ```bash
-bun run type-check      # TypeScript across all packages
+bun run typecheck       # TypeScript across all packages
 bun run boundary-check  # Dependency cruiser (allowed imports)
 bun run test            # Test suite
 ```
+
+### Running Scripts in Filtered Workspaces
+
+When using `bun --filter` to run scripts across workspace packages, be aware that **Bun silently skips packages that don't have the requested script** and exits with code 0 (success). This means:
+
+```bash
+# If packages/foo has no "typecheck" script, it's silently skipped
+# The CI stays green even though not all packages were checked
+bun --filter '*' typecheck
+```
+
+**Best practice:** Always run scripts by their exact names in `package.json`. Script names must match exactly — `type-check` vs `typecheck` are different. If you refactor script names, update all references and use explicit `bun run <script>` rather than filtered runs, or verify that all workspace packages have the same script names.
 
 ### `bun install` Doesn't Update a Module
 

@@ -32,7 +32,7 @@ Per-module verify scripts + unit tests (fast-check for Money)
 
 ### Fresh-Scaffold Gate (skeleton/acceptance/fresh-scaffold.ts)
 - `bun install` exits 0 with zero warnings (catches missing deps, broken hoisting)
-- TypeScript compiles (`type-check`)
+- TypeScript compiles (`typecheck`)
 - Dependency boundaries enforced (`boundary-check` via dep-cruiser)
 - All tests pass (`test`)
 - Client can be generated (`gen:client`)

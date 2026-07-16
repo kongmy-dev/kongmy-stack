@@ -68,8 +68,7 @@ export function allocateByRatios(
   const parts: number[] = [];
   let allocatedTotal = 0;
 
-  for (let i = 0; i < ratios.length; i++) {
-    const ratio = decimalRatios[i];
+  for (const [, ratio] of decimalRatios.entries()) {
     const proportion = ratio.dividedBy(sumRatios);
     const exactAmount = new Decimal(total.minor).times(proportion);
     const roundedAmount = exactAmount
@@ -88,8 +87,7 @@ export function allocateByRatios(
   // Distribute remainder to parts with largest fractional parts
   // Recalculate fractional parts to determine distribution
   const fractional: Array<{ index: number; fraction: Decimal }> = [];
-  for (let i = 0; i < ratios.length; i++) {
-    const ratio = decimalRatios[i];
+  for (const [i, ratio] of decimalRatios.entries()) {
     const proportion = ratio.dividedBy(sumRatios);
     const exactAmount = new Decimal(total.minor).times(proportion);
     const frac = exactAmount.minus(exactAmount.toDecimalPlaces(0, Decimal.ROUND_DOWN));
@@ -102,8 +100,8 @@ export function allocateByRatios(
   fractional.sort((a, b) => b.fraction.comparedTo(a.fraction));
 
   // Distribute remainder to indices with highest fractional parts
-  for (let i = 0; i < remainder && i < fractional.length; i++) {
-    parts[fractional[i].index]++;
+  for (const { index } of fractional.slice(0, remainder)) {
+    parts[index] = (parts[index] ?? 0) + 1;
   }
 
   // Verify

@@ -3,7 +3,7 @@
 /**
  * scripts/add.ts — Module copier (ADR-0003)
  *
- * Usage: bun scripts/add.ts <module-name> [--into <path>]
+ * Usage: bun scripts/add.ts <module-name> [--into <path>] [--force]
  *
  * Copies a module from modules/<name> into the target skeleton:
  *   - Copies modules/<name> → <skeleton>/packages/<name>
@@ -13,13 +13,17 @@
  * Arguments:
  *   <module-name>     Name of the module to add (e.g., 'money', 'queue')
  *   --into <path>     Target skeleton path (default: ./skeleton)
+ *   --force           Skip git status check (use with caution)
  *
  * Idempotent: run multiple times on the same module is safe.
+ * Refuses to run if the target directory is a git repo with uncommitted changes
+ * unless --force is passed.
  */
 
 import { existsSync, copyFileSync, mkdirSync, rmSync } from 'fs'
-import { join, relative } from 'path'
+import { join, relative, resolve } from 'path'
 import { readFileSync, writeFileSync } from 'fs'
+import { execSync } from 'child_process'
 
 const CWD = process.cwd()
 const REPO_ROOT = process.env.KONGMY_STACK_ROOT || CWD
@@ -28,10 +32,11 @@ const MODULES_ROOT = join(REPO_ROOT, 'modules')
 async function main() {
   const moduleName = process.argv[2]
   const intoIndex = process.argv.indexOf('--into')
-  const skeletonRoot = intoIndex >= 0 ? process.argv[intoIndex + 1] : join(CWD, 'skeleton')
+  const skeletonRoot = resolve(intoIndex >= 0 ? process.argv[intoIndex + 1] : join(CWD, 'skeleton'))
+  const hasForce = process.argv.includes('--force')
 
   if (!moduleName) {
-    console.error('Usage: bun scripts/add.ts <module-name> [--into <path>]')
+    console.error('Usage: bun scripts/add.ts <module-name> [--into <path>] [--force]')
     console.error('')
     console.error('Examples:')
     console.error('  bun scripts/add.ts queue')
@@ -54,13 +59,42 @@ async function main() {
     process.exit(1)
   }
 
+  // Print target path clearly (absolute)
+  console.log(`Target skeleton: ${skeletonRoot}`)
+
+  // Check for uncommitted changes in git repo
+  if (!hasForce) {
+    try {
+      const status = execSync(`git -C "${skeletonRoot}" status --porcelain`, {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }).trim()
+
+      if (status) {
+        console.error(`\n❌ Target directory has uncommitted changes:`)
+        console.error(`\n${status}\n`)
+        console.error(`Commit or stash changes before running add.ts, or pass --force to skip this check.`)
+        process.exit(1)
+      }
+    } catch (err) {
+      // Not a git repo or git command failed — either way, proceed
+      // (target might be a fresh clone without .git)
+    }
+  }
+
   const skeletonPackages = join(skeletonRoot, 'packages')
   const targetPath = join(skeletonPackages, moduleName)
+
+  // Verify target path is under packages/ (security: prevent module dumps to repo root)
+  if (!targetPath.startsWith(skeletonPackages + '/') && targetPath !== skeletonPackages) {
+    console.error(`❌ Security: target path outside packages/: ${targetPath}`)
+    process.exit(1)
+  }
 
   // Copy module to skeleton/packages/<name>
   console.log(`Adding module: ${moduleName}`)
   console.log(`  Module source: ${modulePath}`)
-  console.log(`  Target path: ${relative(CWD, targetPath)}`)
+  console.log(`  Target path: ${targetPath}`)
 
   if (existsSync(targetPath)) {
     console.log('  (already exists, replacing...)')
@@ -69,7 +103,7 @@ async function main() {
   copyRecursive(modulePath, targetPath)
   console.log('  ✓ module copied')
 
-  // Patch skeleton/package.json to add workspace entry
+  // Patch skeleton/package.json to add workspace entry (root edit is allowed)
   const skeletonPackageJson = join(skeletonRoot, 'package.json')
   const pkg = JSON.parse(readFileSync(skeletonPackageJson, 'utf-8'))
 

@@ -1,3 +1,5 @@
+// Run via `bun run test` — raw `bun test` times out (suite needs --timeout 120000)
+
 import { test, expect } from 'bun:test'
 import { Hlc, encodeHlc } from '../src/hlc'
 

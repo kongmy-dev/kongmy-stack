@@ -11,6 +11,8 @@ export default defineConfig({
     },
   },
   server: {
+    port: Number(process.env.WEB_PORT) || 5173,
+    strictPort: !!process.env.WEB_PORT,
     proxy: {
       "/api": {
         target: `http://localhost:${process.env.VITE_API_PORT || "3000"}`,

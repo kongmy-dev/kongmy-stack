@@ -33,7 +33,23 @@ export function generateId(prefix: string): string {
  * Allocate the next gapless document sequence number.
  *
  * Per ADR-0009: gapless sequences for accounting documents via atomic row lock.
- * This MUST be called inside a transaction to ensure durability and prevent gaps.
+ *
+ * ⚠️ HARD RULE: This MUST be called inside the SAME TRANSACTION that persists
+ * the document. The gapless property depends on the ON CONFLICT … DO UPDATE
+ * semantics rolling back together with the enclosing transaction. If you call
+ * this outside the document transaction, the allocation commits but the document
+ * insert/update may roll back, leaving gaps.
+ *
+ * Example (CORRECT):
+ *   await tx.begin();
+ *   const seqNumber = await allocateSequenceNumber(tx, org, series, year);
+ *   await createDocument(tx, { ..., docNumber: seqNumber });
+ *   await tx.commit();
+ *
+ * Example (WRONG — causes gaps):
+ *   const seqNumber = await allocateSequenceNumber(db, org, series, year); // commits immediately
+ *   // if this fails, seqNumber is burned:
+ *   await createDocument(db, { ..., docNumber: seqNumber });
  *
  * SQL statement (atomic, single round-trip):
  *   INSERT INTO document_sequences (...) VALUES (...)
@@ -44,6 +60,10 @@ export function generateId(prefix: string): string {
  * Returns the newly allocated sequence number (1-based).
  * If the sequence doesn't exist, creates it with value = 1.
  * If it exists, increments and returns.
+ *
+ * Gapless behavior: Proven on PGlite (single connection). Multi-worker
+ * server-Postgres deployments should add a conformance test before relying
+ * on gapless property under concurrent load.
  *
  * @param executor - raw database executor (PGlite or postgres)
  * @param orgId - organization ID

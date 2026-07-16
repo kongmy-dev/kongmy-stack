@@ -101,6 +101,8 @@ registry/            # LATER: shadcn-format manifests for file items (earn it af
 
 **Wave E (2026-07-16):** `modules/events` (envelope + HLC + upcast + transactional outbox + in-proc bus; per-event marking with poison isolation; crash recovery proven by cross-process SIGKILL on file-backed PGlite; 47 tests) + `modules/agentic` (`registry.execute()` audited door, zod→JSON-Schema tool derivation, autonomy gate suggest/assist/auto, framework-free MCP JSON-RPC transport with `tools/list` filtered by `can()` and denials audited; 15 tests). Both extracted from private consumer references, de-domained (IP grep gated). 4 modules total; `verify-all.ts` auto-discovers them in acceptance. `modules/ledger` decided OUT of template until a second consumer.
 
+**Wave F (2026-07-16):** First-consumer wave-1 friction addressed (report lives consumer-side): modules ship TS-source entries (`src/index.ts` — no build step for vendored clones), money module strict under `noUncheckedIndexedAccess`, hardcoded-strings gate now enforcing (was `expect(true)` theatre), `type-check`→`typecheck` (bun `--filter` silently skips missing script names), `useRealtime(enabled)` gated on session, `add.ts` refuses dirty targets + writes only under `packages/`, `WEB_PORT` pinning, gapless-sequence "allocate inside the document tx" rule documented.
+
 **Acceptance layer in CI:** `bun run acceptance` = fresh-clone-check gate (proves zero repo-internal assumptions) + 10 Playwright smoke tests + per-module verify. Catches installation-shape bugs (symlink handling, workspace deps, tsconfig paths).
 
 See `PLAN.md` (full plan + reasoning) and `TASKS.md` (actionable checklist). `EXECUTION.md` contains outcome notes per thread.

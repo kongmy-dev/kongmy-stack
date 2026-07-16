@@ -14,6 +14,9 @@
   "common_sort": "Isihan",
   "common_previous": "Sebelumnya",
   "common_next": "Seterusnya",
+  "common_select_language": "Pilih bahasa",
+  "common_email": "E-mel",
+  "common_password": "Kata laluan",
   "invoices_title": "Invois",
   "invoices_create_title": "Buat Invois",
   "invoices_edit_title": "Ubah Invois",
@@ -54,5 +57,8 @@
   "errors_unauthorized": "Tidak dibenarkan",
   "errors_forbidden": "Dilarang",
   "errors_conflict": "Konflik",
-  "errors_business_rule_violation": "Pelanggaran peraturan bisnes"
+  "errors_business_rule_violation": "Pelanggaran peraturan bisnes",
+  "invoices_customer_name_placeholder": "Syarikat Acme",
+  "invoices_number_placeholder": "INV-001",
+  "invoices_notes_placeholder": "Nota tambahan..."
 }
