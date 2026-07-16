@@ -2,7 +2,7 @@
 
 Public (BSD-3) full-stack **template system** for KONGMY Digital Solutions. This repo is the clone-point + module source for all new product/client projects. It is **not a framework and not a published package** — consumers clone the skeleton and vendor modules as owned source, then diverge freely.
 
-**Full rationale lives in the vault:** `~/obsidian-knowledge/Resources/Dev & Infra/API Stack & Template Architecture — kongmy-stack.md` (decided 2026-07-13). This file is the working summary for this repo.
+**Full rationale lives in internal notes** (decided 2026-07-13). This file is the working summary for this repo.
 
 ---
 
@@ -13,7 +13,7 @@ Seven prior projects rebuilt the same platform code (validation, error envelopes
 1. **Contract-first zod SSOT** — every operation is a zod contract + a service function. From that one definition: Hono route, OpenAPI doc, MCP tool schema, generated TS/Kotlin clients, form validation, URL param validation.
 2. **Nothing we maintain is a versioned dependency of anything we build.** All platform code (backend modules and UI components) moves as vendored source. No npm treadmill, per-project divergence is free. This is the only distribution model that survives a one-person maintenance budget.
 
-First consumer and forcing function: **emas-pos** (`~/Projects/emas-pos`) — build order = whatever it needs next. Nothing enters this template that a real product didn't pull.
+First consumer and forcing function: **a private POS product** — build order = whatever it needs next. Nothing enters this template that a real product didn't pull.
 
 ## Locked architecture (condensed — do not relitigate)
 
@@ -59,16 +59,16 @@ registry/            # LATER: shadcn-format manifests for file items (earn it af
 
 | What | Where | Notes |
 |---|---|---|
-| events envelope + HLC + outbox · `withScope` RLS · `registry.execute()` · Money VOs | `~/Projects/emas-pos/packages/*` + `docs/` ADRs | Build the generic versions HERE; emas-pos then consumes them (never ship `@aurum/*`) |
-| tenant repo · autonomy gate · tools/MCP shape | `~/Projects/nexus-command-centre` (`packages/`, `apps/api/ai/`) | Derive tool inputSchema from zod, not hand-written JSON Schema |
-| connector pattern: canonical model, fake gateways, sync jobs, verify-invariant scripts | `~/Projects/IotCats/settlement-middleware` | For the `connector` module (later phase) |
-| admin blocks reference | `~/Projects/references/shadcn-admin` | Blocks are imported via sapphire-ui, not directly here |
+| events envelope + HLC + outbox · `withScope` RLS · `registry.execute()` · Money VOs | A private consumer product + `docs/` ADRs | Build the generic versions HERE; consumers then pull them via `scripts/add.ts` |
+| tenant repo · autonomy gate · tools/MCP shape | A private reference implementation | Derive tool inputSchema from zod, not hand-written JSON Schema |
+| connector pattern: canonical model, fake gateways, sync jobs, verify-invariant scripts | A private middleware reference | For the `connector` module (later phase) |
+| admin blocks reference | Public shadcn admin-dashboard template | Blocks are imported via sapphire-ui, not directly here |
 
 ## Boundaries (hard rules)
 
 - **Zero published packages.** Everything ships as copyable source. If you're about to `npm publish`, stop.
 - **sapphire-ui never imports from this repo** and this repo never imports sapphire via npm for product UI — UI components are **vendored** from sapphire's registry (`shadcn add` / copy). Contract-aware UI blocks (DataTable wired to pagination schema, AppError form mapper) live HERE in `skeleton/apps/web`; styled primitives live in sapphire.
-- **No product IP ever**: no Aurum licensing/crypto/control-plane code, no client domain logic, no secrets. This repo is public.
+- **No product IP ever**: no private licensing/crypto/control-plane code, no client domain logic, no secrets. This repo is public.
 - **Contracts import only zod.** Adapter idioms must not leak into `packages/contract`.
 - **Bun only** (never npm/npx/yarn). Biome for lint+format.
 - **Public stance** (README): personal stack — no support, no roadmap, no semver; breaking changes without notice. Git tags as snapshots.
@@ -99,7 +99,7 @@ registry/            # LATER: shadcn-format manifests for file items (earn it af
 
 **Wave D (T8):** Scaffold path proved end-to-end: clone (excluding node_modules) → fresh install → CI → add module → test. See `scripts/fresh-clone-check.ts`.
 
-**Wave E (2026-07-16):** `modules/events` (envelope + HLC + upcast + transactional outbox + in-proc bus; per-event marking with poison isolation; crash recovery proven by cross-process SIGKILL on file-backed PGlite; 47 tests) + `modules/agentic` (`registry.execute()` audited door, zod→JSON-Schema tool derivation, autonomy gate suggest/assist/auto, framework-free MCP JSON-RPC transport with `tools/list` filtered by `can()` and denials audited; 15 tests). Both extracted from emas-pos/nexus references, de-domained (IP grep gated). 4 modules total; `verify-all.ts` auto-discovers them in acceptance. `modules/ledger` decided OUT of template until a second consumer (lives in emas-pos).
+**Wave E (2026-07-16):** `modules/events` (envelope + HLC + upcast + transactional outbox + in-proc bus; per-event marking with poison isolation; crash recovery proven by cross-process SIGKILL on file-backed PGlite; 47 tests) + `modules/agentic` (`registry.execute()` audited door, zod→JSON-Schema tool derivation, autonomy gate suggest/assist/auto, framework-free MCP JSON-RPC transport with `tools/list` filtered by `can()` and denials audited; 15 tests). Both extracted from private consumer references, de-domained (IP grep gated). 4 modules total; `verify-all.ts` auto-discovers them in acceptance. `modules/ledger` decided OUT of template until a second consumer.
 
 **Acceptance layer in CI:** `bun run acceptance` = fresh-clone-check gate (proves zero repo-internal assumptions) + 10 Playwright smoke tests + per-module verify. Catches installation-shape bugs (symlink handling, workspace deps, tsconfig paths).
 

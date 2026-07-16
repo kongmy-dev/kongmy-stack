@@ -59,19 +59,19 @@
 - [x] README.md refreshed: what works (Phase 1), quick start, design principles, no-support stance, BSD-3
 - [x] CLAUDE.md status updated: Phase 1 complete, Waves A–C merged, Wave D (T8) passed
 - [x] Acceptance documentation: `skeleton/docs/guides/scaffolding.md` (clone path, seam 8, gotchas, troubleshooting)
-- [ ] emas-pos scaffolds from skeleton (its thread; coordinate — signal: GO as of 2026-07-14)
-- [ ] Feedback loop: friction found in emas-pos → fix in skeleton while both are young
+- [x] Consumer scaffolding from skeleton (signal: GO as of 2026-07-14)
+- [ ] Feedback loop: friction found in consumers → fix in skeleton while both are young
 
 ## Phase 2+ (pull-driven — do NOT build ahead of a consumer)
 
 - [ ] `scripts/gen.ts feature <x>` generator (ADR-0001): emits contract stub + service + routes + queries.ts + form + columns + route file from a resource definition — the `rails g scaffold` equivalent; generated code is vendored and editable
-- [ ] `modules/money` (Aurum Money/Weight VOs generalized; decimal.js internal, integer minor units on wire; fast-check tests)
+- [ ] `modules/money` (Money/Weight VOs generalized from private consumer references; decimal.js internal, integer minor units on wire; fast-check tests)
 - [ ] `modules/queue` (interface + pg-boss impl + PGlite lane per Spike A + scheduler)
-- [x] `modules/events` (envelope + HLC + outbox + in-proc bus, from Aurum) — Wave E: 47 tests incl. cross-process SIGKILL crash-recovery on file-backed PGlite, per-event mark (poison isolation), payload round-trip
+- [x] `modules/events` (envelope + HLC + outbox + in-proc bus, from private consumer references) — Wave E: 47 tests incl. cross-process SIGKILL crash-recovery on file-backed PGlite, per-event mark (poison isolation), payload round-trip
 - [x] `modules/agentic` (registry.execute(), zod-derived tool schemas, autonomy gate, /mcp) — Wave E: 15 tests; MCP transport threads autonomy from caller ctx (default suggest), denials audited at the door
-- [ ] `modules/connector` (canonical model + real/fake gateways + sync jobs + verify scripts, from settlement-middleware; includes ERPNext permission importer per ADR-0008 when a project syncs with ERPNext)
-- [ ] `modules/ledger` — **decided 2026-07-16: lives in emas-pos until a second consumer wants double-entry; promote then, not before** (ADR-0009 lifecycle + accounting core): account tree (code, ASSET/LIABILITY/EQUITY/REVENUE/EXPENSE, parent), balanced JournalEntry/JournalLine, auto-GL-post pattern from documents, FiscalYear + period close, payment application against invoices, trial balance/P&L/BS queries, optional `dimensions` (cost center/project) on lines. Verify-invariant scripts: Σdebits=Σcredits per entry + per period, aging consistency. References: `~/Projects/references/vibe_accounting_malaysia` (fullest), ERPNext accounts doctypes
-- [ ] `modules/country-my` (ADR-0009): states/postcode, TIN validation (vibe tinUtils), SSM/SST ids, MSIC codes, SST tax types, MyInvois e-invoice (UBL 2.1 v1.1 mapper + PKCS#7 signing + OAuth2 + submit/poll/cancel; sandbox+prod). Sources: vibe einvoice module, `~/Projects/emas-pos/packages/country-my`
+- [ ] `modules/connector` (canonical model + real/fake gateways + sync jobs + verify scripts, from private middleware reference; includes ERPNext permission importer per ADR-0008 when a project syncs with ERPNext)
+- [ ] `modules/ledger` — **decided 2026-07-16: deferred until a second consumer wants double-entry** (ADR-0009 lifecycle + accounting core): account tree (code, ASSET/LIABILITY/EQUITY/REVENUE/EXPENSE, parent), balanced JournalEntry/JournalLine, auto-GL-post pattern from documents, FiscalYear + period close, payment application against invoices, trial balance/P&L/BS queries, optional `dimensions` (cost center/project) on lines. Verify-invariant scripts: Σdebits=Σcredits per entry + per period, aging consistency. References: private accounting reference, ERPNext accounts doctypes
+- [ ] `modules/country-my` (ADR-0009): states/postcode, TIN validation, SSM/SST ids, MSIC codes, SST tax types, MyInvois e-invoice (UBL 2.1 v1.1 mapper + PKCS#7 signing + OAuth2 + submit/poll/cancel; sandbox+prod). Sources: private accounting/einvoice modules and consumer packages
 - [ ] Kotlin client pipeline (OpenAPI → KMP)
 - [ ] `registry/` shadcn-format manifests for modules
 - [ ] GitHub repo public + `bun create` flow verified from a clean machine

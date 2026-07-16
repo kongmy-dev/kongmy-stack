@@ -177,18 +177,18 @@ Test Status (as of latest run):
 
 All lanes must pass identically. Spike conformance suite (`spikes/a-pgboss-pglite/conformance/`) is the reference; this module adapts it to the Queue interface.
 
-## Consuming in emas-pos
+## Consuming in your project
 
-Copy the module into emas-pos via `scripts/add.ts`:
+Copy the module into your project via `scripts/add.ts`:
 
 ```bash
-cd ~/Projects/emas-pos
+cd your-consumer-project
 bun scripts/add.ts queue
 ```
 
 This will:
-1. Copy `modules/queue/**` to `emas-pos/modules/queue/`
-2. Patch `packages.json` to include `queue-module`
+1. Copy `modules/queue/**` to `your-project/modules/queue/`
+2. Patch `package.json` to include `queue-module`
 3. Merge dependencies into the workspace
 
 Then use:
@@ -203,12 +203,12 @@ const queue = await pgbossQueueFile("./queue.db");
 const queue = await pgbossQueue({ connectionString: process.env.DATABASE_URL });
 ```
 
-Emas-pos use cases:
-- Receipt PDF generation (background job)
-- Settlement reconciliation
+Typical use cases:
+- Document generation (background job)
+- Reconciliation and sync operations
 - Audit log exports
-- Periodic sync with control plane
-- E-invoice submission → poll → callback
+- Periodic data synchronization
+- Asynchronous workflow submissions with polling
 
 ## References
 

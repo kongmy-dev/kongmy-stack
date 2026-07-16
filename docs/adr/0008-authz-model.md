@@ -8,7 +8,7 @@ Layer 0 (already in place): tenant isolation via `withScope`. Within a tenant:
 
 1. **Permission ids are DERIVED from contracts, never hand-authored:** `resource('invoice')` → `invoice:read|create|update|delete`; `action('send')` → `invoice:send`. The permission vocabulary cannot drift from the API because it IS the API (SSOT applied to authz; same rule that bans hand-written tool schemas).
 2. **Roles are tenant-scoped DATA, not code:** `Role { id, tenantId, name, permissions: string[] }`, seeded defaults per product; per-client customization is an UPDATE, not a release (ERPNext Role-Profile lesson).
-3. **Membership carries roles + scope constraints:** `Membership { userId, tenantId, roles[], scopes?: { branchIds?[] , ... } }` — scopes enforced inside `withScope` (ERPNext User-Permission equivalent; Aurum's org/branch two-level tenancy anticipated this).
+3. **Membership carries roles + scope constraints:** `Membership { userId, tenantId, roles[], scopes?: { branchIds?[] , ... } }` — scopes enforced inside `withScope` (ERPNext User-Permission equivalent; private consumer implementations anticipated multi-level tenancy).
 4. **Owner predicate** where declared: `can('invoice:update', row)` passes on permission OR ownership rule (ERPNext `if_owner`).
 5. **ONE authoritative enforcement point:** service entry / command door via `ctx.authz.assert(perm)`. Route middleware is early-reject convenience only. MCP does not pass through REST middleware — tools and routes MUST hit the same check.
 6. **MCP `tools/list` filtered by `can()`** — an agent only sees tools its principal may call. Composes with autonomy: **permission = whether you may; autonomy level = how autonomously.** Orthogonal axes, one declaration each.

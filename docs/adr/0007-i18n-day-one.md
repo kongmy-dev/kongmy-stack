@@ -4,7 +4,7 @@
 
 ## Decision
 
-i18n **plumbing** is skeleton content from day 1; translation **content** stays empty until a project needs a second locale. Rationale: retrofit cost is the tiering criterion used everywhere else in this stack, and i18n scores worst-in-class on retrofit — string extraction touches every file, and formatting assumptions calcify. The plumbing is cheap; only translations are expensive, and those are deferred by nature. Likely early consumer: emas-pos (BM/CN receipts in Malaysian gold retail).
+i18n **plumbing** is skeleton content from day 1; translation **content** stays empty until a project needs a second locale. Rationale: retrofit cost is the tiering criterion used everywhere else in this stack, and i18n scores worst-in-class on retrofit — string extraction touches every file, and formatting assumptions calcify. The plumbing is cheap; only translations are expensive, and those are deferred by nature. Consumer projects requiring multi-locale support have proven this pattern in real retail POS systems.
 
 ## What "plumbing" means (all cheap, all day-1)
 
