@@ -6,7 +6,7 @@
  * Cloudflare Queues are available only in Workers runtime; they follow different
  * semantics (push-driven, JSON-only payloads, built-in retries at platform level).
  *
- * When emas-pos or another product targets Workers, this impl will ship.
+ * When a product targets Workers, this impl will ship.
  * For now: throw NotImplementedError to make the contract explicit.
  *
  * ADR-0012: three lanes; CF Queues deferred to first Workers deployment
