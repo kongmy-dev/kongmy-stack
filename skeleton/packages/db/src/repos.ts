@@ -170,6 +170,10 @@ export const invoiceRepo = {
   /**
    * Update an invoice.
    * Enforces scope constraint.
+   *
+   * Writes only the columns present in `input`. Writing the whole row back from a prior read
+   * loses concurrent writes: two PATCHes to different fields both read the same row, and the
+   * second overwrites the first's column with the stale value it read. Both callers get a 200.
    */
   async update(
     db: DbInstance & { rawDb?: RawExecutor },
@@ -185,7 +189,41 @@ export const invoiceRepo = {
     }
 
     const now = getCurrentTimestamp();
-    const updated: Invoice = {
+    const sets: string[] = [];
+    const params: unknown[] = [];
+    const set = (column: string, value: unknown) => {
+      params.push(value);
+      sets.push(`${column} = $${params.length}`);
+    };
+
+    if (input.branchId) set("branch_id", input.branchId);
+    if (input.invoiceNumber) set("invoice_number", input.invoiceNumber);
+    if (input.customerName) set("customer_name", input.customerName);
+    if (input.issuedDate) set("issued_date", input.issuedDate);
+    if (input.dueDate) set("due_date", input.dueDate);
+    if (typeof input.amount === "number") set("amount", input.amount);
+    if (input.status) set("status", input.status);
+    set("updated_at", now);
+
+    // Scope the write too. getById already asserted it, but a WHERE that only trusts a prior read
+    // is one refactor away from a cross-tenant write.
+    params.push(id);
+    const idParam = `$${params.length}`;
+    params.push(scope.org);
+    const orgParam = `$${params.length}`;
+
+    const result = await executor.query(
+      `UPDATE invoices SET ${sets.join(", ")}
+        WHERE inv_id = ${idParam} AND organization_id = ${orgParam}
+        RETURNING inv_id`,
+      params
+    );
+
+    if (!result.rows || result.rows.length === 0) {
+      throw new Error(`Invoice ${id} not found`);
+    }
+
+    return {
       ...existing,
       ...(input.branchId && { branch_id: input.branchId }),
       ...(input.invoiceNumber && { invoice_number: input.invoiceNumber }),
@@ -196,32 +234,6 @@ export const invoiceRepo = {
       ...(input.status && { status: input.status }),
       updated_at: now,
     };
-
-    await executor.query(`
-      UPDATE invoices
-      SET
-        branch_id = $1,
-        invoice_number = $2,
-        customer_name = $3,
-        issued_date = $4,
-        due_date = $5,
-        amount = $6,
-        status = $7,
-        updated_at = $8
-      WHERE inv_id = $9
-    `, [
-      updated.branch_id,
-      updated.invoice_number,
-      updated.customer_name,
-      updated.issued_date,
-      updated.due_date,
-      updated.amount,
-      updated.status,
-      updated.updated_at,
-      id,
-    ]);
-
-    return updated;
   },
 
   /**
@@ -239,9 +251,10 @@ export const invoiceRepo = {
       throw new Error(`Invoice ${id} not found`);
     }
 
+    // Scope the delete too — see update(): the WHERE should not depend on a prior read for isolation.
     await executor.query(
-      `DELETE FROM invoices WHERE inv_id = $1`,
-      [id]
+      `DELETE FROM invoices WHERE inv_id = $1 AND organization_id = $2`,
+      [id, scope.org]
     );
   },
 };

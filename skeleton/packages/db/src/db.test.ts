@@ -110,6 +110,46 @@ describe("Invoice Repository", () => {
     expect(updated.updated_at > created.updated_at).toBe(true); // timestamp changed
   });
 
+  it("concurrent updates to different fields do not clobber each other", async () => {
+    const created = await invoiceRepo.create(db, testOrg, {
+      branchId: testOrg.branch,
+      invoiceNumber: "INV-2026-00010b",
+      customerName: "original-name",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
+      amount: 50000,
+    });
+
+    // Two PATCHes touching disjoint fields, as two users editing one record would. Writing the
+    // whole row back from a prior read loses one of them silently — both callers still get a 200.
+    await Promise.all([
+      invoiceRepo.update(db, testOrg, created.inv_id, { status: "posted" }),
+      invoiceRepo.update(db, testOrg, created.inv_id, { customerName: "new-name" }),
+    ]);
+
+    const final = await invoiceRepo.getById(db, testOrg, created.inv_id);
+    expect(final?.status).toBe("posted");
+    expect(final?.customer_name).toBe("new-name");
+  });
+
+  it("update leaves fields absent from the input untouched", async () => {
+    const created = await invoiceRepo.create(db, testOrg, {
+      branchId: testOrg.branch,
+      invoiceNumber: "INV-2026-00010c",
+      customerName: "keep-me",
+      issuedDate: "2026-01-15",
+      dueDate: "2026-02-15",
+      amount: 50000,
+    });
+
+    const updated = await invoiceRepo.update(db, testOrg, created.inv_id, { amount: 60000 });
+
+    expect(updated.amount).toBe(60000);
+    expect(updated.customer_name).toBe("keep-me");
+    expect(updated.invoice_number).toBe("INV-2026-00010c");
+    expect(updated.issued_date).toBe("2026-01-15");
+  });
+
   it("deletes an invoice", async () => {
     const created = await invoiceRepo.create(db, testOrg, {
       branchId: testOrg.branch,
