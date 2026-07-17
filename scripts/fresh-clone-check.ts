@@ -126,8 +126,11 @@ async function main() {
     // --- STEP 4: Add a module ---
     section('STEP 4: Add money module')
 
-    const addCmd = `bun "${join(REPO_ROOT, 'scripts/add.ts')}" money --into "${TEMP_SKELETON}"`
-    const addResult = exec(addCmd, 'bun add.ts money', { KONGMY_STACK_ROOT: REPO_ROOT })
+    // --ref HEAD is deliberate, not a workaround for the dirty-source refusal. A vendor pull ships
+    // a commit, so this step proves what a consumer would actually receive — which means anything
+    // uncommitted in modules/ is not under test here. Commit first, then run acceptance.
+    const addCmd = `bun "${join(REPO_ROOT, 'scripts/add.ts')}" money --ref HEAD --into "${TEMP_SKELETON}"`
+    const addResult = exec(addCmd, 'bun add.ts money --ref HEAD', { KONGMY_STACK_ROOT: REPO_ROOT })
     if (addResult.exitCode !== 0) {
       error(`add.ts failed with exit code ${addResult.exitCode}`)
       if (addResult.output) {
