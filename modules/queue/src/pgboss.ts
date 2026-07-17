@@ -162,18 +162,43 @@ export async function pgbossQueue(
     async work<T extends JobPayload = JobPayload>(
       name: string,
       handler: JobHandler<T>,
-      _options?: WorkOptions
+      options?: WorkOptions
     ): Promise<string> {
-      // Note: WorkOptions (pollIntervalMs, concurrency) are set at pg-boss init time,
-      // not per work() call. The Queue interface accepts them for API completeness,
-      // but they don't apply here. For per-job polling control, create separate Queue
-      // instances with different newJobCheckInterval values.
-
       // Create queue if it doesn't exist
       try {
         await boss.createQueue(name);
       } catch {
         // Queue may already exist; ignore
+      }
+
+      // pg-boss takes polling as seconds and rejects anything under 500ms. Reject a too-fast
+      // interval here rather than letting it be silently ignored or clamped: an option the caller
+      // set and the lane quietly dropped is worse than an error.
+      if (options?.pollIntervalMs !== undefined && options.pollIntervalMs < 500) {
+        throw new Error(
+          `pollIntervalMs must be >= 500 on the Postgres lanes, got ${options.pollIntervalMs}`
+        );
+      }
+      if (options?.concurrency !== undefined && (!Number.isInteger(options.concurrency) || options.concurrency < 1)) {
+        throw new Error(`concurrency must be an integer >= 1, got ${options.concurrency}`);
+      }
+
+      // `includeMetadata: true` must stay a literal type: pg-boss keys a conditional type off it to
+      // decide whether the handler receives JobWithMetadata or plain Job. Widening this to
+      // Record<string, unknown> silently selects the wrong branch.
+      const workOptions: {
+        includeMetadata: true;
+        batchSize: number;
+        pollingIntervalSeconds?: number;
+        localConcurrency?: number;
+      } = { includeMetadata: true, batchSize: 1 };
+
+      if (options?.pollIntervalMs !== undefined) {
+        workOptions.pollingIntervalSeconds = options.pollIntervalMs / 1000;
+      }
+      if (options?.concurrency !== undefined) {
+        // pg-boss v12 spawns N independent workers per queue for this.
+        workOptions.localConcurrency = options.concurrency;
       }
 
       // pg-boss v12 work() delivers a BATCH: the handler receives Job<T>[]
@@ -186,7 +211,7 @@ export async function pgbossQueue(
       // standing between this wrapper and silent job loss.
       void boss.work(
         name,
-        { includeMetadata: true, batchSize: 1 },
+        workOptions,
         async (pgbossJobs: JobWithMetadata<T>[]) => {
           for (const pgbossJob of pgbossJobs) {
             const job: Job<T> = {

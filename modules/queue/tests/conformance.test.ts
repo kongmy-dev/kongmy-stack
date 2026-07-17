@@ -343,3 +343,48 @@ Six assertions (all must pass):
 ✓ 6. Restart durability: jobs survive process kill (file + postgres only)
 
 Status: ${process.env.QUEUE_PG_DSN ? "Testing all 3 lanes" : "Testing 2 lanes (PG lane SKIPPED — set QUEUE_PG_DSN)"}`);
+
+/**
+ * WorkOptions must actually reach the lane. These were accepted and silently dropped before —
+ * the interface promised tuning that never happened, which is worse than not offering it.
+ */
+describe("WorkOptions are honoured, not decorative", () => {
+  it("concurrency runs that many handlers in parallel", async () => {
+    const queue = await pgbossQueueMemory();
+    try {
+      const name = `conc-${Date.now()}`;
+      for (let i = 0; i < 6; i++) await queue.enqueue(name, { n: i });
+
+      let inFlight = 0;
+      let maxInFlight = 0;
+      await queue.work(
+        name,
+        async () => {
+          inFlight++;
+          maxInFlight = Math.max(maxInFlight, inFlight);
+          await new Promise((r) => setTimeout(r, 300));
+          inFlight--;
+        },
+        { concurrency: 3, pollIntervalMs: 500 }
+      );
+
+      await new Promise((r) => setTimeout(r, 3000));
+      // Serial processing would never show more than one handler in flight.
+      expect(maxInFlight).toBeGreaterThan(1);
+      expect(maxInFlight).toBeLessThanOrEqual(3);
+    } finally {
+      await queue.stop();
+    }
+  });
+
+  it("rejects a pollIntervalMs the lane cannot honour instead of dropping it", async () => {
+    const queue = await pgbossQueueMemory();
+    try {
+      await expect(
+        queue.work(`poll-${Date.now()}`, async () => {}, { pollIntervalMs: 100 })
+      ).rejects.toThrow(/must be >= 500/);
+    } finally {
+      await queue.stop();
+    }
+  });
+});

@@ -79,13 +79,20 @@ export interface EnqueueOptions {
  */
 export interface WorkOptions {
   /**
-   * How often to poll for new jobs (ms).
-   * For embedded PGlite (single-writer): 100-1000 is typical to balance latency vs battery/CPU.
-   * For server PG: 1000-5000 typical.
+   * How often to poll for new jobs (ms). Applies per work() registration, overriding the
+   * instance-wide default for this queue only.
+   *
+   * **Minimum 500ms** on the Postgres lanes — pg-boss rejects anything faster. 500-1000 balances
+   * latency against battery/CPU on embedded PGlite; 1000-5000 is typical for server PG.
    * Not applicable to CF Queues (push-driven).
    */
   pollIntervalMs?: number;
-  /** Concurrency limit for this queue (default: 1 per worker lane) */
+  /**
+   * Number of workers to run for this queue, each polling and processing jobs independently
+   * (default 1). This is real parallelism within one node: a value of 3 means up to 3 handler
+   * invocations in flight at once, so handlers must tolerate running concurrently with themselves.
+   * Not a cross-node limit — n nodes at concurrency 3 give up to 3n in flight.
+   */
   concurrency?: number;
 }
 
