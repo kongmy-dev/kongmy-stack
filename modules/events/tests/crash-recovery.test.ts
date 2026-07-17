@@ -2,7 +2,8 @@
 
 import { test, expect } from 'bun:test'
 import { PGlite } from '@electric-sql/pglite'
-import { appendEvent, drainOutbox, EventOutboxDDL, EventOutboxIndexDDL, type RawExecutor } from '../src/outbox'
+import { drainOutbox, type RawExecutor } from '../src/outbox'
+import { EventOutboxDDL, EventOutboxIndexDDL, pgOutboxStore } from '../src/stores'
 import type { EventEnvelope } from '../src/envelope'
 import fs from 'fs'
 import path from 'path'
@@ -79,7 +80,7 @@ test('crash recovery: real SIGKILL proves durability + per-event mark isolation'
 
     const eventCount = 5
     const events = Array.from({ length: eventCount }, (_, i) => mockEnvelope(`ev-${i + 1}`, i + 1))
-    await appendEvent(tx, events)
+    await pgOutboxStore(tx, 'org-crash-test', 'br-crash-test').append(tx, events)
     await db.close()
 
     // Spawn drain worker and SIGKILL mid-stream
@@ -118,14 +119,12 @@ test('crash recovery: real SIGKILL proves durability + per-event mark isolation'
     const db2 = new PGlite(dbPath)
     const deliveredAfter = new Set<string>()
     await drainOutbox(
-      createExecutor(db2),
+      pgOutboxStore(createExecutor(db2), 'org-crash-test', 'br-crash-test'),
       async (e) => {
         deliveredAfter.add(e.id)
         // Append to log for final verification
         fs.appendFileSync(deliveryLogFile, `${e.id}\n`)
       },
-      'org-crash-test',
-      'br-crash-test',
     )
     await db2.close()
 
@@ -187,7 +186,7 @@ test('crash recovery: throw-based crash simulates poison event halt', async () =
       mockEnvelope('ev-poison', 2),
       mockEnvelope('ev-3', 3),
     ]
-    await appendEvent(tx, events)
+    await pgOutboxStore(tx, 'org-crash-test', 'br-crash-test').append(tx, events)
     await db.close()
 
     // First drain: e1 publishes, e2 throws (halts)
@@ -196,13 +195,11 @@ test('crash recovery: throw-based crash simulates poison event halt', async () =
 
     try {
       await drainOutbox(
-        createExecutor(db2),
+        pgOutboxStore(createExecutor(db2), 'org-crash-test', 'br-crash-test'),
         async (e) => {
           if (e.id === 'ev-poison') throw new Error('poison')
           publishedIds1.push(e.id)
         },
-        'org-crash-test',
-        'br-crash-test',
       )
     } catch (e) {
       // Expected: drain halts on poison
@@ -225,13 +222,11 @@ test('crash recovery: throw-based crash simulates poison event halt', async () =
 
     try {
       await drainOutbox(
-        createExecutor(db4),
+        pgOutboxStore(createExecutor(db4), 'org-crash-test', 'br-crash-test'),
         async (e) => {
           if (e.id === 'ev-poison') throw new Error('poison')
           publishedIds2.push(e.id)
         },
-        'org-crash-test',
-        'br-crash-test',
       )
     } catch (e) {
       // Expected

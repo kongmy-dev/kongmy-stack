@@ -10,6 +10,7 @@
 
 import { PGlite } from '@electric-sql/pglite'
 import { drainOutbox, type RawExecutor } from '../../src/outbox'
+import { pgOutboxStore } from '../../src/stores'
 import fs from 'fs/promises'
 
 const dbPath = process.argv[2]
@@ -44,7 +45,7 @@ const publish = async (e: any) => {
   }
 }
 
-drainOutbox(createExecutor(db), publish, 'org-crash-test', 'br-crash-test', { leaseMs })
+drainOutbox(pgOutboxStore(createExecutor(db), 'org-crash-test', 'br-crash-test'), publish, { leaseMs })
   .then(() => {
     db.close()
     process.exit(0)
