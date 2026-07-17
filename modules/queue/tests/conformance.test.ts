@@ -312,11 +312,12 @@ describe("Queue Conformance Suite", () => {
     await runLane(lane);
   });
 
-  it("PostgreSQL server: all assertions pass (env-gated)", async () => {
+  // skipIf, not an `if (lane)` inside the body: without QUEUE_PG_DSN the body asserts nothing, and
+  // a test that asserts nothing must report "skipped" rather than a green "all assertions pass".
+  it.skipIf(!process.env.QUEUE_PG_DSN)("PostgreSQL server: all assertions pass (env-gated)", async () => {
     const lane = await createPostgresLane();
-    if (lane) {
-      await runLane(lane);
-    }
+    if (!lane) throw new Error("QUEUE_PG_DSN set but the PostgreSQL lane failed to initialise");
+    await runLane(lane);
   });
 });
 

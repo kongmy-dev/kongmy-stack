@@ -179,24 +179,29 @@ export async function pgbossQueue(
       // pg-boss v12 work() delivers a BATCH: the handler receives Job<T>[]
       // (batchSize defaults to 1). includeMetadata gives us the real
       // retryCount/state/timestamps — without it those fields don't exist.
+      //
+      // Iterate the whole batch. Resolving this callback completes EVERY job pg-boss handed us, so
+      // reading only [0] would mark the rest done without ever running them — verified: batchSize 5
+      // delivered 1 job to the handler and completed all 5. That made `batchSize: 1` the only thing
+      // standing between this wrapper and silent job loss.
       void boss.work(
         name,
         { includeMetadata: true, batchSize: 1 },
         async (pgbossJobs: JobWithMetadata<T>[]) => {
-          const pgbossJob = pgbossJobs[0];
+          for (const pgbossJob of pgbossJobs) {
+            const job: Job<T> = {
+              id: pgbossJob.id,
+              name: pgbossJob.name,
+              data: pgbossJob.data,
+              attempt_number: pgbossJob.retryCount + 1,
+              retry_limit: pgbossJob.retryLimit,
+              created_on: pgbossJob.createdOn.toISOString(),
+              started_on: pgbossJob.startedOn?.toISOString() ?? null,
+              state: pgbossJob.state,
+            };
 
-          const job: Job<T> = {
-            id: pgbossJob.id,
-            name: pgbossJob.name,
-            data: pgbossJob.data,
-            attempt_number: pgbossJob.retryCount + 1,
-            retry_limit: pgbossJob.retryLimit,
-            created_on: pgbossJob.createdOn.toISOString(),
-            started_on: pgbossJob.startedOn?.toISOString() ?? null,
-            state: pgbossJob.state,
-          };
-
-          await handler(job);
+            await handler(job);
+          }
         }
       );
 
