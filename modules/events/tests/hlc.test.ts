@@ -102,3 +102,33 @@ test('HLC.receive on a stalled clock advances counter', () => {
   expect(merged.wallMs).toBe(1000) // local is max
   expect(merged.counter).toBe(1) // local.counter + 1
 })
+
+test('encoded HLC stays sortable past the 16-bit counter ceiling', () => {
+  // A stalled or regressed wall clock makes send() lean on the counter alone. At 65536 the counter
+  // no longer fits the 4 hex digits encodeHlc gives it; masking it would wrap ffff → 0000 and make
+  // the later event sort first.
+  const hlc = new Hlc(() => 1_700_000_000_000)
+
+  let prev = encodeHlc(hlc.send())
+  for (let i = 0; i < 70_000; i++) {
+    const cur = encodeHlc(hlc.send())
+    expect(cur > prev).toBe(true)
+    prev = cur
+  }
+})
+
+test('a remote counter at the ceiling cannot invert causality on receive', () => {
+  const hlc = new Hlc(() => 1_700_000_000_000)
+  const earlier = encodeHlc(hlc.send())
+
+  // receive() takes max(local, remote) + 1, so a remote at the ceiling pushes us past it.
+  const merged = hlc.receive({ wallMs: 1_700_000_000_000, counter: 65_535 })
+
+  expect(merged.counter).toBeLessThanOrEqual(0xffff)
+  expect(encodeHlc(merged) > earlier).toBe(true)
+})
+
+test('encodeHlc refuses a hand-built timestamp it cannot represent', () => {
+  expect(() => encodeHlc({ wallMs: 1_700_000_000_000, counter: 65_536 })).toThrow(/out of range/)
+  expect(() => encodeHlc({ wallMs: 1_700_000_000_000, counter: -1 })).toThrow(/out of range/)
+})

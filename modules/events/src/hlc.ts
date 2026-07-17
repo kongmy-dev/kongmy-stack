@@ -12,6 +12,26 @@ export interface HlcTimestamp {
 }
 
 /**
+ * Counter ceiling imposed by the wire format: `encodeHlc` gives the counter 4 hex digits.
+ * A counter at or past this cannot be encoded without losing ordering, so the clock carries the
+ * overflow into `wallMs` instead (see `carry`). HLC wall time is logical and may legitimately run
+ * ahead of the physical clock — that is what makes this safe rather than a fudge.
+ */
+const MAX_COUNTER = 0xffff
+
+/** Wall-time ceiling imposed by the wire format: 12 hex digits (48-bit ms, ~year 10889). */
+const MAX_WALL_MS = 0xffffffffffff
+
+/**
+ * Normalize a timestamp so its counter always fits the encoding.
+ * Overflow becomes wall-time advance, which keeps the encoded form strictly increasing.
+ */
+function carry(ts: HlcTimestamp): HlcTimestamp {
+  if (ts.counter <= MAX_COUNTER) return ts
+  return { wallMs: ts.wallMs + Math.floor(ts.counter / (MAX_COUNTER + 1)), counter: ts.counter % (MAX_COUNTER + 1) }
+}
+
+/**
  * Hybrid Logical Clock — generate and merge timestamps while preserving causality.
  * Stateful; call send() for locally-produced events and receive() when learning about remote events.
  */
@@ -31,10 +51,11 @@ export class Hlc {
    */
   send(): HlcTimestamp {
     const wall = this.now()
-    this.last =
+    this.last = carry(
       wall > this.last.wallMs
         ? { wallMs: wall, counter: 0 }
-        : { wallMs: this.last.wallMs, counter: this.last.counter + 1 }
+        : { wallMs: this.last.wallMs, counter: this.last.counter + 1 },
+    )
     return this.last
   }
 
@@ -64,7 +85,8 @@ export class Hlc {
       // Wall time is max: reset counter
       counter = 0
     }
-    this.last = { wallMs: maxWall, counter }
+    // A remote counter near the ceiling would otherwise push us past what encodeHlc can represent.
+    this.last = carry({ wallMs: maxWall, counter })
     return this.last
   }
 }
@@ -74,11 +96,23 @@ export class Hlc {
  * Format: 12 hex digits (48-bit ms) + ':' + 4 hex digits (16-bit counter).
  * Lexicographic ordering matches logical ordering: earlier timestamps sort before later ones.
  *
+ * Timestamps from `Hlc` always fit, because the clock carries counter overflow into `wallMs`.
+ * A hand-built timestamp that does not fit throws rather than wraps: masking the counter to 16 bits
+ * silently maps 65536 → '0000', which sorts *below* every earlier stamp in the same millisecond and
+ * inverts the causality this encoding exists to preserve.
+ *
  * @param ts - HLC timestamp to encode
  * @returns Sortable string representation (e.g. '00000000000f:0000')
+ * @throws If the timestamp cannot be represented without breaking sort order
  */
 export function encodeHlc(ts: HlcTimestamp): string {
+  if (!Number.isInteger(ts.counter) || ts.counter < 0 || ts.counter > MAX_COUNTER) {
+    throw new Error(`hlc counter out of range for encoding: ${ts.counter} (max ${MAX_COUNTER})`)
+  }
+  if (!Number.isInteger(ts.wallMs) || ts.wallMs < 0 || ts.wallMs > MAX_WALL_MS) {
+    throw new Error(`hlc wallMs out of range for encoding: ${ts.wallMs} (max ${MAX_WALL_MS})`)
+  }
   const ms = ts.wallMs.toString(16).padStart(12, '0')
-  const ctr = (ts.counter & 0xffff).toString(16).padStart(4, '0')
+  const ctr = ts.counter.toString(16).padStart(4, '0')
   return `${ms}:${ctr}`
 }
