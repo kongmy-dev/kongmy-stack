@@ -38,7 +38,11 @@ export interface RawExecutor {
  * - causation_id, correlation_id: Traceability
  * - payload: JSON event payload
  * - published: Whether drain() has marked this event as delivered
+ * - claimed_by, lease_expires_at: Drain lease (see drainOutbox). null = unclaimed.
  * - created_at: ISO-8601 UTC timestamp
+ *
+ * Timestamps are ISO-8601 UTC `text`, not `timestamptz`: they compare lexicographically, so the
+ * lease works identically on PG, PGlite and D1 without `now()`/`interval`.
  */
 export const EventOutboxDDL = `create table if not exists event_outbox (
   id text primary key,
@@ -55,6 +59,8 @@ export const EventOutboxDDL = `create table if not exists event_outbox (
   correlation_id text not null,
   payload text not null,
   published boolean not null default false,
+  claimed_by text,
+  lease_expires_at text,
   created_at text not null,
 
   unique (org_id, branch_id, seq)
@@ -118,15 +124,58 @@ export async function appendEvent(tx: RawExecutor, events: EventEnvelope[]): Pro
   await tx.query(sql, params)
 }
 
+function toEnvelope(row: Record<string, unknown>): EventEnvelope {
+  return {
+    id: String(row.id),
+    type: String(row.type),
+    version: Number(row.version),
+    orgId: String(row.org_id),
+    branchId: row.branch_id ? String(row.branch_id) : null,
+    seq: Number(row.seq),
+    hlc: String(row.hlc),
+    actor: {
+      id: String(row.actor_id),
+      type: String(row.actor_type) as 'human' | 'agent' | 'system',
+      model: row.actor_model ? String(row.actor_model) : null,
+    },
+    causationId: row.causation_id ? String(row.causation_id) : null,
+    correlationId: String(row.correlation_id),
+    payload: JSON.parse(String(row.payload)) as unknown,
+    createdAt: String(row.created_at),
+  }
+}
+
+/** Written to `claimed_by`. Diagnostic only — exclusion comes from the row lock, not this value. */
+const DRAINER_ID = `drainer-${crypto.randomUUID()}`
+
+/** Default drain lease. Must comfortably exceed the slowest publish() in the batch. */
+const DEFAULT_LEASE_MS = 30_000
+
+export interface DrainOptions {
+  /**
+   * How long this drainer's claim is held before another drainer may reclaim the batch
+   * (default 30s). Written into `lease_expires_at` at claim time, so each claim carries its own
+   * expiry and drainers with different leaseMs cannot steal each other's live batches.
+   *
+   * Only reached when a drainer dies mid-drain — a live drainer releases its own leftovers on the
+   * way out. Too short and a second drainer reclaims events the first is still publishing (the
+   * double-delivery this lease exists to prevent); too long and recovery after a crash stalls for
+   * the remainder of the lease. Set it above your slowest publish().
+   */
+  leaseMs?: number
+  /** Value written to `claimed_by`. Defaults to a per-process id. Diagnostic only. */
+  drainerId?: string
+}
+
 /**
  * Drain the outbox: publish unpublished events and mark them as published.
  * **Second half of transactional outbox pattern.**
  *
- * **Semantics: ordered stream with poison isolation.**
+ * **Semantics: ordered stream with poison isolation, safe under concurrent drainers.**
  *
  * At-least-once delivery guarantee:
- * 1. Fetch all unpublished events in seq order (per org/branch)
- * 2. For each event (in sequence):
+ * 1. Atomically claim all unpublished, unclaimed events for this org/branch (a lease)
+ * 2. For each claimed event, in seq order:
  *    - Call the publish callback (outside any transaction to avoid deadlock)
  *    - Immediately mark event as published in a separate update transaction
  * 3. If publish() throws, drain halts at that event (preserves seq ordering)
@@ -136,16 +185,23 @@ export async function appendEvent(tx: RawExecutor, events: EventEnvelope[]): Pro
  * be re-attempted next drain. Events after E (E+1, E+2, ...) are never attempted until E succeeds.
  *
  * **Exactly-once effect:** Achieved when consumers are idempotent (e.g. event.id deduplication).
- * If a crash occurs after publish() and before the mark UPDATE, the event redelivers on restart.
+ * If a crash occurs after publish() and before the mark UPDATE, the event redelivers once the
+ * lease expires.
  *
- * **Concurrency:** Assumes a single drainer per (orgId, branchId). Concurrent drainers may
- * double-deliver (idempotent consumers will deduplicate).
+ * **Concurrency:** Safe to call concurrently for the same (orgId, branchId). The claim is a single
+ * atomic UPDATE, so concurrent drainers serialize on the row locks and the loser claims nothing —
+ * it returns 0 rather than re-delivering the winner's batch. You do not need to arrange for a
+ * single drainer, and consumers do not need to be idempotent to avoid N-way double-delivery.
+ *
+ * Draining from a dedicated worker is still the shape to prefer: draining per-request puts the
+ * publish latency (and any broker/HTTP call it makes) inside the request that triggered it.
  *
  * @param db - Database executor
  * @param publish - Async callback to publish one event (e.g. bus.publish or send to broker)
  * @param orgId - Organization ID (scoping)
  * @param branchId - Branch ID (scoping; null for HQ)
- * @returns Number of events successfully published and marked
+ * @param opts - Lease tuning; see DrainOptions
+ * @returns Number of events successfully published and marked (0 if another drainer holds the lease)
  * @throws If a publish callback throws, the drain halts at that event (earlier events stay marked)
  *
  * @example
@@ -157,54 +213,65 @@ export async function drainOutbox(
   publish: (e: EventEnvelope) => Promise<void>,
   orgId: string,
   branchId: string | null,
+  opts: DrainOptions = {},
 ): Promise<number> {
-  // Fetch unpublished events
+  const leaseMs = opts.leaseMs ?? DEFAULT_LEASE_MS
+  const drainerId = opts.drainerId ?? DRAINER_ID
+
+  const nowIso = new Date().toISOString()
+  const leaseExpiresAt = new Date(Date.now() + leaseMs).toISOString()
+
+  // Claim in one atomic UPDATE. Two concurrent drainers serialize on the row locks: the loser
+  // re-evaluates this WHERE after the winner commits, sees a live claim, matches nothing, and gets
+  // an empty batch. Splitting this into select-then-claim is what re-opens the double-delivery
+  // window — N drainers × N pending events = N² deliveries.
   const result = await db.query(
-    `select id, type, version, org_id, branch_id, seq, hlc, actor_id, actor_type, actor_model,
-            causation_id, correlation_id, payload, created_at
-     from event_outbox
-     where published = false and org_id = $1 and (branch_id = $2 or (branch_id is null and $2 is null))
-     order by seq asc`,
-    [orgId, branchId],
+    `update event_outbox
+        set claimed_by = $3, lease_expires_at = $4
+      where published = false
+        and org_id = $1 and (branch_id = $2 or (branch_id is null and $2 is null))
+        and (lease_expires_at is null or lease_expires_at < $5)
+      returning id, type, version, org_id, branch_id, seq, hlc, actor_id, actor_type, actor_model,
+                causation_id, correlation_id, payload, created_at`,
+    [orgId, branchId, drainerId, leaseExpiresAt, nowIso],
   )
 
-  const rows = result.rows
-  if (rows.length === 0) return 0
+  if (result.rows.length === 0) return 0
 
-  // Publish each event and mark immediately (per-event marking ensures poison isolation).
-  // If a publish fails, the drain halts at that event: all earlier events are marked (won't redeliver),
-  // the failing event stays unpublished, and later events are never attempted.
-  // This preserves seq ordering and prevents earlier events from being redelivered forever.
+  // `returning` does not promise row order, and seq ordering is a guarantee of this module.
+  const batch = result.rows.map(toEnvelope).sort((a, b) => a.seq - b.seq)
+
   let publishedCount = 0
-  for (const row of rows) {
-    const env: EventEnvelope = {
-      id: String(row.id),
-      type: String(row.type),
-      version: Number(row.version),
-      orgId: String(row.org_id),
-      branchId: row.branch_id ? String(row.branch_id) : null,
-      seq: Number(row.seq),
-      hlc: String(row.hlc),
-      actor: {
-        id: String(row.actor_id),
-        type: String(row.actor_type) as 'human' | 'agent' | 'system',
-        model: row.actor_model ? String(row.actor_model) : null,
-      },
-      causationId: row.causation_id ? String(row.causation_id) : null,
-      correlationId: String(row.correlation_id),
-      payload: JSON.parse(String(row.payload)) as unknown,
-      createdAt: String(row.created_at),
+  try {
+    for (const env of batch) {
+      // Publish the event (outside any tx to avoid deadlock on single-connection DBs)
+      await publish(env)
+
+      // Mark as published immediately after successful publish
+      await db.query(`update event_outbox set published = true where id = $1`, [env.id])
+      publishedCount++
     }
-
-    // Publish the event (outside any tx to avoid deadlock on single-connection DBs)
-    await publish(env)
-
-    // Mark as published immediately after successful publish
-    await db.query(
-      `update event_outbox set published = true where id = $1`,
-      [env.id],
-    )
-    publishedCount++
+  } finally {
+    // Release the claim on anything we did not publish, so the next drain retries at once instead
+    // of waiting out the lease. A crash skips this — that path is what leaseMs covers.
+    //
+    // Matching on our own claim (rather than the batch's ids) is what makes this safe when our
+    // lease has already expired: a drainer that took the batch over wrote its own lease_expires_at,
+    // so this becomes a no-op instead of yanking a live claim out from under it. It also keeps the
+    // statement at four params for any batch size.
+    if (publishedCount < batch.length) {
+      try {
+        await db.query(
+          `update event_outbox set claimed_by = null, lease_expires_at = null
+            where claimed_by = $3 and lease_expires_at = $4 and published = false
+              and org_id = $1 and (branch_id = $2 or (branch_id is null and $2 is null))`,
+          [orgId, branchId, drainerId, leaseExpiresAt],
+        )
+      } catch {
+        // Best-effort: the lease expiry frees these anyway, and throwing here would mask the
+        // publish error that brought us into this block.
+      }
+    }
   }
 
   return publishedCount

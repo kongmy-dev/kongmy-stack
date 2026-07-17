@@ -30,7 +30,9 @@ Event backbone: envelope (zod), HLC timestamps, transactional outbox, and in-pro
 ### 5. **Outbox** (`src/outbox.ts`)
 - Transactional outbox pattern: **at-least-once delivery guarantee**
 - `appendEvent(tx, events)` — append sealed events within domain transaction (first half)
-- `drainOutbox(db, publish, orgId, branchId)` — publish unpublished events, then mark (second half)
+- `drainOutbox(db, publish, orgId, branchId, opts?)` — claim, publish, then mark (second half)
+- Concurrent drainers are safe: the claim is one atomic UPDATE holding a lease, so a second drainer
+  gets an empty batch instead of re-delivering the first one's events
 - Minimal `RawExecutor` interface: works with any DB (Drizzle, raw PG, PGlite, Workers D1)
 - SQL is always parameterized ($1, $2, …) — never string-interpolated
 
@@ -81,11 +83,45 @@ await db.transaction(async (tx) => {
   await appendEvent(executor, [sealed])
 })
 
-// Drain: publish events outside the transaction (avoids deadlock on single-connection DBs)
-// Subscribers run independently; outbox re-delivers on crash
+// Drain: publish events outside the transaction (avoids deadlock on single-connection DBs).
+// Subscribers run independently; the outbox re-delivers on crash.
+//
+// Drain from a worker entrypoint, not from the request that appended the event. Draining
+// per-request puts publish latency (and any broker or HTTP call it makes) inside the request,
+// so a sale waits on someone else's e-invoice submission.
 const bus = new EventBus()
 const published = await drainOutbox(db, bus.publish.bind(bus), 'org-123', 'branch-456')
 console.log(`published ${published} events`)
+```
+
+### Concurrency and the drain lease
+
+`drainOutbox` claims its batch in a single atomic UPDATE that writes a lease, so it is safe to call
+concurrently for the same `(orgId, branchId)`. Concurrent drainers serialize on the row locks; the
+loser matches nothing and returns `0` rather than re-delivering the winner's batch. You do not need
+to arrange for a single drainer, and consumers do not need to be idempotent to avoid N-way
+double-delivery. (Idempotent consumers are still worth having — they cover the crash redelivery
+below, which no lease can remove.)
+
+A drainer releases the claim on anything it did not publish, so a poison event is retried on the
+very next drain. The lease only matters when a drainer *dies* mid-drain: it cannot release its own
+claim, so that batch waits out `leaseMs` before another drainer picks it up.
+
+```typescript
+// Set leaseMs above your slowest publish(). Too short and a second drainer reclaims events the
+// first is still publishing; too long and recovery after a crash stalls for the rest of the lease.
+await drainOutbox(db, publish, 'org-123', 'branch-456', { leaseMs: 60_000 })
+```
+
+Each claim stores its own `lease_expires_at`, so drainers configured with different `leaseMs` values
+cannot steal each other's live batches.
+
+**Migrating an existing outbox table.** `EventOutboxDDL` is `create table if not exists`, so a table
+created before the lease will not gain the columns. Add them once:
+
+```sql
+alter table event_outbox add column claimed_by text;
+alter table event_outbox add column lease_expires_at text;
 ```
 
 ### HLC for cross-branch causality
@@ -172,22 +208,30 @@ The outbox provides **at-least-once delivery** with **poison event isolation**:
 
 **Per-event marking (ordered stream):**
 1. Events are appended in a transaction with the domain write.
-2. Drain fetches unpublished events in seq order and, for each event:
+2. Drain claims all unpublished, unclaimed events for the stream in one atomic UPDATE (a lease),
+   sorts them by seq, and for each event:
    - Publishes the event (outside any transaction to avoid deadlock)
    - Immediately marks that event as published in a separate UPDATE
-3. If a crash occurs after publish but before mark, that event redelivers on restart.
-4. If a publish fails, the drain halts at that event: earlier events stay marked (won't redeliver), the failing event stays unpublished, and later events are never attempted.
+3. If a crash occurs after publish but before mark, that event redelivers once the lease expires.
+4. If a publish fails, the drain halts at that event: earlier events stay marked (won't redeliver), the failing event stays unpublished, and later events are never attempted. The drain releases its claim on everything it didn't publish, so the next drain retries immediately.
 
 This **poison isolation** ensures that one permanently-failing event doesn't cause earlier events to redeliver forever.
+
+**Concurrency:** Drainers are safe to run concurrently against the same `(orgId, branchId)`. The
+atomic claim means a second drainer gets an empty batch, not a second copy of the first drainer's
+events — a select-then-publish drain delivers N² times under N concurrent drainers.
 
 **Exactly-once effect** is achieved when **consumers are idempotent**:
 - Track delivery by `event.id` (deduplication)
 - If you receive the same `event.id` twice, process it only once
 - Or use atomic upserts in your projections (e.g., `insert on conflict do nothing`)
 
-**Concurrency:** The module assumes **a single drainer per (orgId, branchId) stream**. Concurrent drainers may double-deliver events (idempotent consumers deduplicate).
+Idempotency is no longer what protects you from concurrent drainers, but it still matters: a drainer
+that dies between publish and mark redelivers that event after the lease expires, and no claim
+strategy removes that. Consumers that allocate something per delivery (a document number, a running
+total, a tax filing) are the ones that feel it.
 
-The test suite includes a crash-recovery proof using file-backed PGlite with real SIGKILL process termination, demonstrating durability and per-event mark isolation.
+The test suite includes a crash-recovery proof using file-backed PGlite with real SIGKILL process termination, demonstrating durability and per-event mark isolation, plus a concurrency proof that 8 simultaneous drainers deliver 8 events exactly 8 times rather than 64.
 
 ## Testing
 

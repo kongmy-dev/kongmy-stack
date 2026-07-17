@@ -50,13 +50,19 @@ function mockEnvelope(id: string, seq: number): EventEnvelope {
  * 2. Spawn drain worker in separate process
  * 3. SIGKILL after ≥1 delivery
  * 4. Verify delivery log: early events delivered once, event-in-flight may appear twice
- * 5. Restart drain, verify final state: all events marked, no new deliveries
+ * 5. Wait out the dead worker's lease, restart drain, verify all events marked
  *
  * Proves:
  * - DB durability under SIGKILL (no graceful shutdown)
  * - Per-event marking prevents earlier redeliver after crash
  * - Exactly-once effect with idempotent consumer (dedup by event.id)
+ * - A killed drainer's claim is freed by lease expiry, not left stranded forever
+ *
+ * The worker uses a short lease so step 5 does not sit through the 30s default: a SIGKILLed
+ * drainer cannot release its own claim, so lease expiry is the only thing that frees the batch.
+ * That wait is the real cost of the lease, and it is the price of never double-delivering.
  */
+const CRASH_LEASE_MS = 500
 test('crash recovery: real SIGKILL proves durability + per-event mark isolation', async () => {
   const dbDir = await import('os').then((os) => path.join(os.tmpdir(), `sigkill-test-${Date.now()}`))
   const dbPath = path.join(dbDir, 'crash.db')
@@ -79,7 +85,7 @@ test('crash recovery: real SIGKILL proves durability + per-event mark isolation'
     // Spawn drain worker and SIGKILL mid-stream
     const workerScript = path.join(__dirname, 'fixtures/drain-worker.ts')
     const worker1 = Bun.spawn(
-      ['bun', 'run', workerScript, dbPath, deliveryLogFile, '2'], // SIGKILL after event 2
+      ['bun', 'run', workerScript, dbPath, deliveryLogFile, '2', String(CRASH_LEASE_MS)], // SIGKILL after event 2
       { stdio: ['ignore', 'pipe', 'pipe'] },
     )
 
@@ -103,6 +109,10 @@ test('crash recovery: real SIGKILL proves durability + per-event mark isolation'
     expect(deliveriesAfterKill.length).toBeLessThanOrEqual(2)
 
     const deliveredBefore = new Set(deliveriesAfterKill)
+
+    // Wait out the killed worker's lease: it died holding a claim it can never release, so until
+    // the lease expires a restarted drain correctly refuses to touch its batch.
+    await new Promise((resolve) => setTimeout(resolve, CRASH_LEASE_MS + 300))
 
     // Restart drain in-process to completion
     const db2 = new PGlite(dbPath)
