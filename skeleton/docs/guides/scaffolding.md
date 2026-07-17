@@ -48,11 +48,19 @@ If you cloned the skeleton directly and later want to add modules from the kongm
 # From the original kongmy-stack repo root, pointing to your cloned project
 bun scripts/add.ts money --into /path/to/my-project
 
+# Pin a specific commit or tag instead of HEAD:
+bun scripts/add.ts money --ref v0.3.0 --into /path/to/my-project
+
 # Then in your project:
 cd /path/to/my-project
 bun install
 bun run test
 ```
+
+The copier vendors from a commit and writes `packages/<module>/.vendor.json` recording the source
+sha and a hash per file. Commit it: it is what lets a later pull detect that you have patched the
+module and refuse to overwrite you. It also refuses when the source module has uncommitted changes,
+since those are not what would be vendored.
 
 ### Pre-Seeded in Your Clone
 

@@ -66,7 +66,9 @@ bun scripts/add.ts <module-name> --into /path/to/your/consumer/project
 
 (Note: `kongmy-stack/scripts/add.ts` is the template repo tool, not available in consumer clones.)
 
-The script copies the module into `<your-project>/packages/<module>`, adds the workspace entry to `package.json`, and merges dependencies. Then: `bun install && bun run test` to verify.
+The script extracts the module **at a commit** (default `HEAD`, override with `--ref <ref>`) into `<your-project>/packages/<module>`, adds the workspace entry to `package.json`, and writes `.vendor.json` recording the source sha and a hash per file. Then: `bun install && bun run test` to verify.
+
+Commit `.vendor.json` — a later pull reads it to detect that you have patched the module and refuses to overwrite you. The script also refuses when the source module has uncommitted changes (those are not what would be vendored) or when the target repo is dirty. `--force` overrides all of it.
 
 **Example:** From template repo clone, add queue module to consumer project at `~/Projects/my-app`:
 ```bash
@@ -77,7 +79,7 @@ This creates `~/Projects/my-app/packages/queue` and patches `~/Projects/my-app/p
 **Four modules available:**
 - `money`: Money value objects (decimal.js internal), allocation logic, integer minor units on wire.
 - `queue`: ONE enqueue/worker interface, three implementations for async job processing.
-- `events`: Event backbone with zod envelope, HLC timestamps, transactional outbox, and in-proc pub/sub bus.
+- `events`: Event backbone with zod envelope, HLC timestamps, transactional outbox, and in-proc pub/sub bus. Envelope/bus/HLC/upcast are the portable core; persistence is a seam (`OutboxStore`) with two shipped stores — `pgOutboxStore` (staging table) and `journalStore` (your log *is* the outbox). Bring your own store if you have RLS or `uuid`/`jsonb` columns.
 - `agentic`: Audited command door, autonomy gate (suggest/assist/auto), MCP JSON-RPC transport.
 
 After pulling, consult the module's README for API details.

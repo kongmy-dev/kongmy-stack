@@ -51,6 +51,10 @@ bun scripts/add.ts money --into /path/to/my-app
 cd /path/to/my-app && bun install && bun run test
 ```
 
+Modules are vendored from a **commit**, not a working tree, and each copy records where it came from
+in `.vendor.json` — so "which sha is this, and have we patched it?" stays answerable, and a re-pull
+refuses to clobber a local patch instead of silently overwriting it. See [docs/VENDORING.md](docs/VENDORING.md).
+
 Everything is **vendored source** — there are no published npm packages to depend on and nothing to upgrade. Your copy is yours; diverge freely.
 
 ## Design principles
