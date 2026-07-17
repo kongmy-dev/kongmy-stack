@@ -18,9 +18,9 @@ export interface NotificationDraft {
   id: string;
   type: "email" | "telegram" | "lark";
   recipient: string;
-  subject?: string;
+  subject?: string | undefined;
   body: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | undefined;
   createdAt: string; // ISO-8601 UTC
 }
 

@@ -13,7 +13,9 @@ import type { ToolDefinition, ToolExecutionContext, ToolResult, AuditEntry } fro
 export interface RegistryConfig {
   authz: { assert(permission: string): void; can(permission: string): boolean }
   auditWrite: (entry: AuditEntry) => Promise<void>
-  logger?: { info(msg: string, data?: unknown): void; error(msg: string, err?: unknown): void }
+  logger?:
+    | { info(msg: string, data?: unknown): void; error(msg: string, err?: unknown): void }
+    | undefined
 }
 
 export interface ExecuteRequest<Input = unknown> {

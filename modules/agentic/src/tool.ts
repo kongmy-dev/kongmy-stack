@@ -32,7 +32,9 @@ export interface ToolExecutionContext {
   /** Audit writer seam: called with entry before returning. */
   auditWrite: (entry: AuditEntry) => Promise<void>
   /** Logger seam (optional). */
-  logger?: { info(msg: string, data?: unknown): void; error(msg: string, err?: unknown): void }
+  logger?:
+    | { info(msg: string, data?: unknown): void; error(msg: string, err?: unknown): void }
+    | undefined
   /** Autonomy level: suggest=show draft, assist=ask, auto=execute. */
   autonomy: 'suggest' | 'assist' | 'auto'
 }
@@ -43,9 +45,9 @@ export interface AuditEntry {
   autonomyLevel: 'suggest' | 'assist' | 'auto'
   input: unknown
   outcome: 'success' | 'denied' | 'validation_error' | 'error'
-  summary?: string
-  errorCode?: string
-  errorMessage?: string
+  summary?: string | undefined
+  errorCode?: string | undefined
+  errorMessage?: string | undefined
   timestamp: string
 }
 

@@ -101,6 +101,21 @@ function publishMutationEvent(
 }
 
 /**
+ * Contract docs fields, with absent ones omitted rather than set to undefined.
+ * createRoute declares `summary?: string`, so an explicit `undefined` is not assignable under
+ * exactOptionalPropertyTypes — the key has to be absent, not present-and-undefined.
+ */
+function routeDocs(route: {
+  summary?: string | undefined;
+  description?: string | undefined;
+}) {
+  return {
+    ...(route.summary !== undefined && { summary: route.summary }),
+    ...(route.description !== undefined && { description: route.description }),
+  };
+}
+
+/**
  * registerResource: wire a ResourceContract + handlers into CRUD routes
  *
  * Constraints (compile-time, per ADR-0001):
@@ -155,8 +170,7 @@ export function registerResource(
   const listRoute = createRoute({
     method: "get",
     path: `/${resourceNamePlural}`,
-    summary: contract.listRoute.summary,
-    description: contract.listRoute.description,
+    ...routeDocs(contract.listRoute),
     request: {
       query: listQuerySchema,
     },
@@ -186,8 +200,7 @@ export function registerResource(
   const getRoute = createRoute({
     method: "get",
     path: `/${resourceNamePlural}/:id`,
-    summary: contract.getRoute.summary,
-    description: contract.getRoute.description,
+    ...routeDocs(contract.getRoute),
     request: {
       params: z.object({
         id: z.string().describe(`${resourceName} ID`),
@@ -219,8 +232,7 @@ export function registerResource(
   const createResourceRoute = createRoute({
     method: "post",
     path: `/${resourceNamePlural}`,
-    summary: contract.createRoute.summary,
-    description: contract.createRoute.description,
+    ...routeDocs(contract.createRoute),
     request: {
       body: {
         content: {
@@ -282,8 +294,7 @@ export function registerResource(
   const updateRoute = createRoute({
     method: "put",
     path: `/${resourceNamePlural}/:id`,
-    summary: contract.updateRoute.summary,
-    description: contract.updateRoute.description,
+    ...routeDocs(contract.updateRoute),
     request: {
       params: z.object({
         id: z.string().describe(`${resourceName} ID`),
@@ -346,8 +357,7 @@ export function registerResource(
   const deleteRoute = createRoute({
     method: "delete",
     path: `/${resourceNamePlural}/:id`,
-    summary: contract.deleteRoute.summary,
-    description: contract.deleteRoute.description,
+    ...routeDocs(contract.deleteRoute),
     request: {
       params: z.object({
         id: z.string().describe(`${resourceName} ID`),

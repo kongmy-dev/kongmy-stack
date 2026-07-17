@@ -22,7 +22,7 @@ export interface LabelProps
   extends LabelHTMLAttributes<HTMLLabelElement>,
     VariantProps<typeof labelVariants> {
   /** Show red asterisk for required fields */
-  required?: boolean;
+  required?: boolean | undefined;
 }
 
 const Label = forwardRef<HTMLLabelElement, LabelProps>(

@@ -70,8 +70,8 @@ export function mapValidationErrorToForm<T extends Record<string, unknown>>(
  * Returns {toastMessage?: string, formErrors?: Record<string, string>}
  */
 export function parseApiError(err: unknown): {
-  toastMessage?: string;
-  formErrors?: Record<string, string>;
+  toastMessage?: string | undefined;
+  formErrors?: Record<string, string> | undefined;
 } {
   if (!(err instanceof ApiError)) {
     return {

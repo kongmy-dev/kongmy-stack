@@ -139,7 +139,9 @@ export function makeApiClient(options: ApiClientOptions = {}) {
     const response = await fetchFn(url, {
       method,
       headers,
-      body: opts?.body ? JSON.stringify(opts.body) : undefined,
+      // Omitted rather than passed as undefined: RequestInit declares `body?: BodyInit | null`,
+      // which under exactOptionalPropertyTypes does not admit an explicit undefined.
+      ...(opts?.body ? { body: JSON.stringify(opts.body) } : {}),
       credentials: "include",
     });
 

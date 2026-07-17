@@ -98,13 +98,13 @@ type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 export interface RouteMetadata {
   method: HttpMethod;
   path: string;
-  summary?: string;
-  description?: string;
-  inputSchema?: z.ZodType;
+  summary?: string | undefined;
+  description?: string | undefined;
+  inputSchema?: z.ZodType | undefined;
   outputSchema: z.ZodType;
-  errorCodes?: ErrorCode[];
-  requiresAuth?: boolean;
-  operationId?: string;
+  errorCodes?: ErrorCode[] | undefined;
+  requiresAuth?: boolean | undefined;
+  operationId?: string | undefined;
 }
 
 // ============================================================================
