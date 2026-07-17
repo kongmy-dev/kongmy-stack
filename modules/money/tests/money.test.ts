@@ -65,11 +65,14 @@ describe("Money VO - Property-based tests", () => {
     it("sum(allocate(total, ratios)) === total (deterministic remainder distribution)", () => {
       fc.assert(
         fc.property(
-          fc.integer({ min: 1, max: 1000000 }),
+          // Spans negatives: ADR-0009 makes corrections reversals, so credit notes and refunds
+          // reach allocation as negative Money. A generator floored at 1 proves the invariant only
+          // for the half of the domain that was never in doubt.
+          fc.integer({ min: -1000000, max: 1000000 }),
           fc.array(fc.integer({ min: 1, max: 1000 }), { minLength: 1, maxLength: 10 }),
           (total, weights) => {
             const money = Money.ofMinor(total, "MYR");
-            const result = allocateByRatios(money, weights, "half-up");
+            const result = allocateByRatios(money, weights);
 
             const sum = result.parts.reduce((s, p) => s.add(p), Money.ofMinor(0, "MYR"));
             const success = sum.equals(money) && result.remainder === 0;
@@ -90,8 +93,8 @@ describe("Money VO - Property-based tests", () => {
           fc.array(fc.integer({ min: 1, max: 1000 }), { minLength: 1, maxLength: 10 }),
           (total, weights) => {
             const money = Money.ofMinor(total, "MYR");
-            const result1 = allocateByRatios(money, weights, "half-up");
-            const result2 = allocateByRatios(money, weights, "half-up");
+            const result1 = allocateByRatios(money, weights);
+            const result2 = allocateByRatios(money, weights);
 
             return result1.parts.every((p, i) => p.equals(result2.parts[i]));
           }
@@ -136,7 +139,7 @@ describe("Money VO - Property-based tests", () => {
             const original = Money.ofMinor(total, "MYR");
 
             // Split
-            const result = allocateByWeights(original, weights, "half-up");
+            const result = allocateByWeights(original, weights);
             if (result.remainder !== 0) return false;
 
             // Merge
@@ -222,7 +225,7 @@ describe("Money VO - Edge cases", () => {
 
   it("single-part allocation", () => {
     const total = Money.ofMinor(1000, "MYR");
-    const result = allocateByWeights(total, [1], "half-up");
+    const result = allocateByWeights(total, [1]);
     expect(result.parts).toHaveLength(1);
     expect(result.parts[0].equals(total)).toBe(true);
     expect(result.remainder).toBe(0);
@@ -230,7 +233,7 @@ describe("Money VO - Edge cases", () => {
 
   it("equal-weight allocation", () => {
     const total = Money.ofMinor(1000, "MYR");
-    const result = allocateByWeights(total, [1, 1, 1], "half-up");
+    const result = allocateByWeights(total, [1, 1, 1]);
     expect(result.parts).toHaveLength(3);
     const sum = result.parts.reduce((s, p) => s.add(p), Money.zero("MYR"));
     expect(sum.equals(total)).toBe(true);
@@ -239,7 +242,7 @@ describe("Money VO - Edge cases", () => {
   it("zero-decimal currency behavior (JPY-like)", () => {
     // JPY typically has 0 decimal places; test allocation with whole numbers
     const total = Money.ofMinor(1000, "JPY");
-    const result = allocateByWeights(total, [3, 7], "half-up");
+    const result = allocateByWeights(total, [3, 7]);
     expect(result.remainder).toBe(0);
     const sum = result.parts.reduce((s, p) => s.add(p), Money.zero("JPY"));
     expect(sum.equals(total)).toBe(true);
@@ -324,26 +327,26 @@ describe("Codec", () => {
 describe("Allocation algorithm", () => {
   it("allocate empty weights throws", () => {
     const total = Money.ofMinor(1000, "MYR");
-    expect(() => allocateByRatios(total, [], "half-up")).not.toThrow(); // empty allocation
+    expect(() => allocateByRatios(total, [])).not.toThrow(); // empty allocation
   });
 
   it("allocate zero-sum ratios throws", () => {
     const total = Money.ofMinor(1000, "MYR");
-    expect(() => allocateByRatios(total, [0, 0, 0], "half-up")).toThrow(
+    expect(() => allocateByRatios(total, [0, 0, 0])).toThrow(
       /sum of ratios must be non-zero/
     );
   });
 
   it("allocate negative ratios throws", () => {
     const total = Money.ofMinor(1000, "MYR");
-    expect(() => allocateByRatios(total, [1, -1, 2], "half-up")).toThrow(
+    expect(() => allocateByRatios(total, [1, -1, 2])).toThrow(
       /all ratios must be non-negative/
     );
   });
 
   it("allocate decimal ratios", () => {
     const total = Money.ofMinor(1000, "MYR");
-    const result = allocateByRatios(total, [new Decimal("0.3"), new Decimal("0.7")], "half-up");
+    const result = allocateByRatios(total, [new Decimal("0.3"), new Decimal("0.7")]);
     const sum = result.parts.reduce((s, p) => s.add(p), Money.zero("MYR"));
     expect(sum.equals(total)).toBe(true);
     expect(result.remainder).toBe(0);
@@ -351,7 +354,7 @@ describe("Allocation algorithm", () => {
 
   it("allocation preserves order of ratios", () => {
     const total = Money.ofMinor(100, "MYR");
-    const result = allocateByWeights(total, [10, 20, 30], "half-up");
+    const result = allocateByWeights(total, [10, 20, 30]);
     // Largest ratio should get more
     expect(result.parts[2].minor).toBeGreaterThanOrEqual(
       result.parts[1].minor
@@ -369,7 +372,7 @@ describe("Allocation algorithm", () => {
 
     for (const amount of amounts) {
       const total = Money.ofMinor(amount, "MYR");
-      const result = allocateByWeights(total, weights, "half-up");
+      const result = allocateByWeights(total, weights);
 
       const sum = result.parts.reduce(
         (s, p) => s + p.minor,
@@ -378,5 +381,25 @@ describe("Allocation algorithm", () => {
       expect(sum).toBe(total.minor);
       expect(result.remainder).toBe(0);
     }
+  });
+});
+
+describe("Allocation of reversals (ADR-0009: corrections are reversals)", () => {
+  it("allocates a negative total as the negation of its positive counterpart", () => {
+    const positive = allocateByRatios(Money.ofMinor(1000, "MYR"), [1, 2, 3]);
+    const negative = allocateByRatios(Money.ofMinor(-1000, "MYR"), [1, 2, 3]);
+
+    expect(negative.parts.map((p) => p.minor)).toEqual(positive.parts.map((p) => -p.minor));
+    expect(negative.parts.map((p) => p.minor)).toEqual([-167, -333, -500]);
+    expect(negative.remainder).toBe(0);
+  });
+
+  it("keeps the sum invariant on a negative total that does not divide evenly", () => {
+    const refund = Money.ofMinor(-100, "MYR");
+    const result = allocateByWeights(refund, [1, 1, 1]);
+
+    const sum = result.parts.reduce((s, p) => s.add(p), Money.zero("MYR"));
+    expect(sum.equals(refund)).toBe(true);
+    expect(result.remainder).toBe(0);
   });
 });
